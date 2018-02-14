@@ -3,6 +3,7 @@
   :dependencies '[[adzerk/boot-cljs "2.1.4" :scope "test"]
                   [adzerk/boot-reload "0.5.2" :scope "test"]
                   [pandeiro/boot-http "0.7.3" :scope "test"]
+                  [nightlight "RELEASE" :scope "test"]
                   [seancorfield/boot-tools-deps "0.1.4" :scope "test"]]
   :repositories (conj (get-env :repositories)
                   ["clojars" {:url "https://clojars.org/repo/"
@@ -14,6 +15,7 @@
   '[adzerk.boot-cljs :refer [cljs]]
   '[adzerk.boot-reload :refer [reload]]
   '[pandeiro.boot-http :refer [serve]]
+  '[nightlight.boot :refer [nightlight]]
   '[boot-tools-deps.core :refer [deps]])
 
 (task-options!
@@ -40,6 +42,7 @@
   (comp
     (deps :aliases [:cljs])
     (serve :dir "target/public")
+    (nightlight :port 4000 :url "http://localhost:3000")
     (watch)
     (reload :asset-path "public")
     (cljs
