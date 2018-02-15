@@ -1,3 +1,5 @@
 {:paths ["src"]
- :deps {org.clojure/clojure {:mvn/version "1.9.0" :scope "provided"}}
+ :deps {org.clojure/clojure {:mvn/version "1.9.0" :scope "provided"}
+        com.cerner/clara-rules {:mvn/version "0.17.0"}
+        rum {:mvn/version "0.11.1"}}
  :aliases {:cljs {:extra-deps {org.clojure/clojurescript {:mvn/version "1.9.946"}}}}}
