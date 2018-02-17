@@ -1,29 +1,25 @@
 (ns pixi-midi-gogo.core
   (:require [clara.rules :refer [query insert fire-rules]])
-  (:require-macros [clara.rules :refer [defsession defrule defquery]]))
+  (:require-macros [clara.rules :refer [defsession defrule defquery]]
+                   [pixi-midi-gogo.core :refer [read-rules]]))
 
 (defrecord Person [name email])
 
-(enable-console-print!)
-
-(defrule alice
-  [Person (= "Alice" name) (= ?email email)]
-  =>
-  (js/console.log ?email))
-
-(defquery get-all-people
-  []
-  [?person <- Person])
-
-(defsession session 'pixi-midi-gogo.core)
+(def sessions
+  (read-rules
+    {:in pixi-midi-gogo.core
+     :on [?person <- Person]
+     :do (js/console.log (pr-str ?person))}
+    {:in pixi-midi-gogo.core
+     :on [Person (= "Alice" name) (= ?email email)]
+     :do (js/console.log ?email)}))
 
 (defn init []
-  (-> session
+  (-> sessions
+      (get 'pixi-midi-gogo.core)
       (insert (->Person "Alice" "alice@sekao.net"))
-      (fire-rules)
-      (query get-all-people)
-      pr-str
-      js/console.log))
+      (insert (->Person "Bob" "bob@sekao.net"))
+      (fire-rules)))
 
 (init)
 
