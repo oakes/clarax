@@ -5,7 +5,7 @@
 
 (defrecord Person [name email])
 
-(def sessions
+(def session
   (read-rules
     {:in pixi-midi-gogo.core
      :on [?person <- Person]
@@ -15,8 +15,7 @@
      :do (js/console.log ?email)}))
 
 (defn init []
-  (-> sessions
-      (get 'pixi-midi-gogo.core)
+  (-> session
       (insert (->Person "Alice" "alice@sekao.net"))
       (insert (->Person "Bob" "bob@sekao.net"))
       (fire-rules)))

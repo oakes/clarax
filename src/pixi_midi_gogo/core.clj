@@ -11,14 +11,13 @@
   (doseq [i (range (count rules))
           :let [{:keys [on do]} (get rules i)
                 sym (symbol (str "rule-" i))]]
-    (add-rule ns-sym sym (list on '=> do)))
-  (macros/sources-and-options->session-assembly-form (list (list 'quote ns-sym))))
+    (add-rule ns-sym sym (list on '=> do))))
 
 (defmacro read-rules [& rules]
-  (reduce
-    (fn [m [ns-sym rules]]
-      (assoc m (list 'quote ns-sym)
-        (read-rules-for-ns ns-sym rules)))
-    {}
-    (group-by :in rules)))
+  (let [ns->rules (group-by :in rules)]
+    (doseq [[ns-sym rules] ns->rules]
+      (read-rules-for-ns ns-sym rules))
+    (macros/sources-and-options->session-assembly-form
+      (for [ns-sym (keys ns->rules)]
+        (list 'quote ns-sym)))))
 
