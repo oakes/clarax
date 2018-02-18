@@ -6,13 +6,12 @@
 
 (rules/fire-rules
   (read-rules
-    {:in pixi-midi-gogo.browser
-     :on [?person <- Person]
+    [pixi-midi-gogo.core pixi-midi-gogo.browser]
+    {:on [?person <- Person]
      :do (insert (->Element [:h1 (str "Hello, " (:name ?person))] "#app2"))}
     {:on [Person (= "Alice" name) (= ?email email)]
      :do (js/console.log ?email)}
     {:do (insert (->Person "Alice" "alice@sekao.net"))}
     {:do (insert (->Person "Bob" "bob@sekao.net"))}
-    {:in pixi-midi-gogo.browser
-     :do (insert (->Element [:h1 "Hello, world!"] "#app"))}))
+    {:do (insert (->Element [:h1 "Hello, world!"] "#app"))}))
 
