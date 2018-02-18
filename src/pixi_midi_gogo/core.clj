@@ -15,12 +15,12 @@
   (doseq [i (range (count rules))
           :let [{:keys [on do]} (get rules i)
                 sym (symbol (str "rule-" i))]]
-    (add-rule sym (list on '=> do))))
+    (add-rule sym (concat on ['=>] do))))
 
 (defmacro read-rules [nses & rules]
   (let [init-forms (->> rules
                         (remove :on)
-                        (map :do))
+                        (mapcat :do))
         _ (add-rules (filterv :on rules))
         session (macros/sources-and-options->session-assembly-form
                   (map #(list 'quote %) nses))]

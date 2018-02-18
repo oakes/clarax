@@ -7,12 +7,12 @@
 (rules/fire-rules
   (read-rules
     [pixi-midi-gogo.core pixi-midi-gogo.browser]
-    {:on [Person (= ?name name)]
-     :do (insert (->Element :greeting [:h1 (str "Hello, " ?name)]))}
-    {:on [Person (= "Alice" name) (= ?email email)]
-     :do (js/console.log ?email)}
-    {:do (insert (->Person nil "Alice" "alice@sekao.net"))}
-    {:do (insert (->Person nil "Bob" "bob@sekao.net"))}
-    {:on [Element (= :greeting id) (= ?value value)]
-     :do (insert (->Element "#app" [:div "Hello, world!" ?value]))}))
+    {:on [[Person (= ?name name)]]
+     :do [(insert (->Element :greeting [:h1 (str "Hello, " ?name)]))]}
+    {:on [[Person (= ?email email)]]
+     :do [(js/console.log ?email)]}
+    {:do [(insert (->Person nil "Alice" "alice@sekao.net"))]}
+    {:do [(insert (->Person nil "Bob" "bob@sekao.net"))]}
+    {:on [[Element (= :greeting id) (= ?value value)]]
+     :do [(insert (->Element "#app" [:div "Hello, world!" ?value]))]}))
 
