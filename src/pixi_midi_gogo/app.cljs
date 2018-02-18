@@ -1,7 +1,8 @@
 (ns pixi-midi-gogo.app
   (:require [pixi-midi-gogo.core :refer [Person ->Person insert]]
             [pixi-midi-gogo.browser :refer [Element ->Element]]
-            [clara.rules :as rules])
+            [clara.rules :as rules]
+            [clara.rules.accumulators :refer [all]])
   (:require-macros [pixi-midi-gogo.core :refer [read-rules]]))
 
 (rules/fire-rules
@@ -13,6 +14,9 @@
      :do [(js/console.log ?email)]}
     {:do [(insert (->Person nil "Alice" "alice@sekao.net"))]}
     {:do [(insert (->Person nil "Bob" "bob@sekao.net"))]}
-    {:on [[Element (= :greeting id) (= ?value value)]]
-     :do [(insert (->Element "#app" [:div "Hello, world!" ?value]))]}))
+    {:on [[?elems <- (all) :from [Element (= :greeting id)]]]
+     :do [(insert (->Element "#app"
+                    (into [:ul]
+                      (for [e ?elems]
+                        [:li (:value e)]))))]}))
 
