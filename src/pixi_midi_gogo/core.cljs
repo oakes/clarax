@@ -1,8 +1,7 @@
 (ns pixi-midi-gogo.core
-  (:require [clara.rules :as rules]
-            [rum.core :as rum]))
+  (:require [clara.rules :as rules]))
 
-(defrecord Person [name email])
+(defrecord Person [id name email])
 
 (defn insert
   ([record]

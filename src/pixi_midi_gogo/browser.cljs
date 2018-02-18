@@ -2,16 +2,17 @@
   (:require [clara.rules :refer [defrule]]
             [rum.core :as rum]))
 
-(defrecord Element [value parent])
+(defrecord Element [id value])
 
 (rum/defc empty-comp
   [content]
   content)
 
 (defrule elem
-  [?elem <- Element]
+  [Element (= ?id id) (= ?value value)]
   =>
-  (rum/mount
-    (empty-comp (:value ?elem))
-    (.querySelector js/document (:parent ?elem))))
+  (when (string? ?id)
+    (rum/mount
+      (empty-comp ?value)
+      (.querySelector js/document ?id))))
 
