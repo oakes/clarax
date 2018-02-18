@@ -42,7 +42,7 @@
   (comp
     (deps :aliases [:cljs])
     (serve :dir "target/public")
-    (nightlight :port 4000 :url "http://localhost:3000")
+    (nightlight :port 4000 #_#_:url "http://localhost:3000")
     (watch)
     (reload :asset-path "public")
     (cljs

@@ -11,8 +11,7 @@
 (defrule elem
   [Element (= ?id id) (= ?value value)]
   =>
-  (when (string? ?id)
-    (rum/mount
-      (empty-comp ?value)
-      (.querySelector js/document ?id))))
+  (rum/mount
+    (empty-comp ?value)
+    (.querySelector js/document ?id)))
 
