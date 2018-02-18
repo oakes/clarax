@@ -1,1 +1,1 @@
-{:require  [pixi-midi-gogo.core nightlight.repl-server]}
+{:require  [pixi-midi-gogo.app nightlight.repl-server]}

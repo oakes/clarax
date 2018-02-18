@@ -9,17 +9,27 @@
   nil)
 
 (defn read-rules-for-ns [[ns-sym rules]]
-  (remove nil?
-    (for [i (range (count rules))
+  (doseq [i (range (count rules))
           :let [{:keys [on do]} (get rules i)
                 sym (symbol (str "rule-" i))]]
-      (if on
-        (add-rule ns-sym sym (list on '=> do))
-        do))))
+    (add-rule ns-sym sym (list on '=> do))))
 
 (defmacro read-rules [& rules]
-  (let [ns->rules (group-by :in rules)
-        init-forms (doall (mapcat read-rules-for-ns ns->rules))
+  (let [rules (reduce
+                (fn [rules rule]
+                  (conj rules
+                    (if-not (:in rule)
+                      (assoc rule :in 'pixi-midi-gogo.core)
+                      rule)))
+                []
+                rules)
+        init-forms (->> rules
+                        (remove :on)
+                        (map :do))
+        ns->rules (->> rules
+                       (filter :on)
+                       (group-by :in))
+        _ (run! read-rules-for-ns ns->rules)
         session (macros/sources-and-options->session-assembly-form
                   (for [ns-sym (keys ns->rules)]
                     (list 'quote ns-sym)))]
