@@ -1,5 +1,5 @@
 (ns pixi-midi-gogo.core
-  (:require [clara.rules :refer [insert fire-rules]]
+  (:require [clara.rules :as rules]
             [rum.core :as rum])
   (:require-macros [clara.rules :refer [defsession defrule]]
                    [pixi-midi-gogo.core :refer [read-rules]]))
@@ -18,11 +18,17 @@
     (empty-comp (:value ?elem))
     (.querySelector js/document (:parent ?elem))))
 
-(fire-rules
+(defn insert
+  ([record]
+   (rules/insert! record))
+  ([session record]
+   (rules/insert session record)))
+
+(rules/fire-rules
   (read-rules
     {:in pixi-midi-gogo.core
      :on [?person <- Person]
-     :do (js/console.log (pr-str ?person))}
+     :do (insert (->Element [:h1 (str "Hello, " (:name ?person))] "#app2"))}
     {:in pixi-midi-gogo.core
      :on [Person (= "Alice" name) (= ?email email)]
      :do (js/console.log ?email)}

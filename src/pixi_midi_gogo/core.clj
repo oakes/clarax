@@ -19,7 +19,7 @@
 
 (defmacro read-rules [& rules]
   (let [ns->rules (group-by :in rules)
-        init-forms (mapcat read-rules-for-ns ns->rules)
+        init-forms (doall (mapcat read-rules-for-ns ns->rules))
         session (macros/sources-and-options->session-assembly-form
                   (for [ns-sym (keys ns->rules)]
                     (list 'quote ns-sym)))]
