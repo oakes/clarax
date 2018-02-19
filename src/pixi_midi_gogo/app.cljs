@@ -2,12 +2,15 @@
   (:require [pixi-midi-gogo.core :refer [insert]]
             [pixi-midi-gogo.browser :refer [Element ->Element]]
             [clara.rules :as rules]
-            [clara.rules.accumulators :refer [all]])
+            [clara.rules.accumulators :refer [all]]
+            [clara.tools.inspect :refer [explain-activations]])
   (:require-macros [pixi-midi-gogo.core :refer [read-rules]]))
 
 (defrecord Person [name email])
 
 (defrecord ListItem [text])
+
+(enable-console-print!)
 
 (rules/fire-rules
   (read-rules
