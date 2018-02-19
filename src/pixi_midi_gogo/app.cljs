@@ -1,5 +1,5 @@
 (ns pixi-midi-gogo.app
-  (:require [pixi-midi-gogo.core :refer [insert]]
+  (:require [pixi-midi-gogo.core :refer [Fact insert]]
             [pixi-midi-gogo.browser :refer [Element ->Element]]
             [clara.rules :as rules]
             [clara.rules.accumulators :refer [all]]
@@ -10,20 +10,22 @@
 
 (defrecord ListItem [text])
 
-(enable-console-print!)
-
 (rules/fire-rules
   (read-rules
     [pixi-midi-gogo.core pixi-midi-gogo.browser]
+    {:on [[?facts <- (all) :from [Fact (= ?id id) (some? id)]]]
+     :do [(doseq [fact (butlast (sort-by :timestamp ?facts))]
+            (rules/retract! fact)
+            (rules/retract! (:record fact)))]}
     {:on [[Person (= ?name name)]]
-     :do [(insert (->ListItem (str "Hello, " ?name)))]}
+     :do [(insert nil (->ListItem (str "Hello, " ?name)))]}
     {:on [[Person (= ?email email)]]
      :do [(js/console.log ?email)]}
-    {:do [(insert (->Person "Alice" "alice@sekao.net"))]}
-    {:do [(insert (->Person "Bob" "bob@sekao.net"))]}
+    {:do [(insert :contact (->Person "Alice" "alice@sekao.net"))]}
+    {:do [(insert :contact (->Person "Bob" "bob@sekao.net"))]}
     {:on [[?items <- (all) :from [ListItem]]]
-     :do [(insert (->Element "#app"
-                    (into [:ul]
-                      (for [item ?items]
-                        [:li (:text item)]))))]}))
+     :do [(insert nil (->Element "#app"
+                        (into [:ul]
+                          (for [item ?items]
+                            [:li (:text item)]))))]}))
 

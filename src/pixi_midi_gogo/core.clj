@@ -7,11 +7,10 @@
 
 (defn add-rule [name body]
   (->> (dsl/build-rule name body)
-       (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name]))
-  nil)
+       (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name])))
 
 (defn add-rules [rules]
-  (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
+  ;(swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
   (doseq [i (range (count rules))
           :let [{:keys [on do]} (get rules i)
                 sym (symbol (str "rule-" i))]]
