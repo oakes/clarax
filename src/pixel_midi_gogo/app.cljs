@@ -28,12 +28,15 @@
   {:do [(insert :stuff [:div "Hi"])]}
   {:do [(insert :contact (->Person "Alice" "alice@sekao.net"))]}
   {:do [(insert :contact (->Person "Bob" "bob@sekao.net"))]}
-  {:on [[Event (= type "click") (= ?id id)]]
-   :do [(js/console.log "Clicked" (pr-str ?id))]}
+  {:on [[Event (= ?id id) (= ?type type)]]
+   :do [(js/console.log "Event" (pr-str ?id) ?type)]}
   {:on [[?items <- (all) :from [ListItem]]]
    :do [(insert :root (->Element "#app"
                         [:div
-                         [:button {:id :btn}
+                         [:input {:id :input
+                                  :on-key-down true}]
+                         [:button {:id :btn
+                                   :on-click true}
                           "Click!"]
                          (into [:ul]
                            (for [item ?items]

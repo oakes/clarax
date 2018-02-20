@@ -6,23 +6,42 @@
 
 (defrecord Element [parent value])
 
-(defrecord Event [id type])
+(defrecord Event [id type options])
 
 (rum/defc empty-comp
   [content]
   content)
+
+(defn jsx->clj
+  [x]
+  (into {} (for [k (.keys js/Object x)] [k (aget x k)])))
+
+(defn add-event [id e]
+  (let [{:strs [type] :as opts} (jsx->clj e)]
+    (swap! *session
+      (fn [session]
+        (-> session
+            (insert (keyword type (name id)) (->Event id type opts))
+            rules/fire-rules)))))
 
 (defrule elem
   [Element (= ?parent parent) (= ?value value)]
   =>
   (-> (walk/postwalk
         (fn [x]
-          (if (and (map? x) (:id x))
-            (assoc x :on-click #(swap! *session
-                                  (fn [session]
-                                    (-> session
-                                        (insert ::clicks (->Event (:id x) "click"))
-                                        rules/fire-rules))))
+          (if (and (vector? x)
+                   (map? (second x))
+                   (:id (second x)))
+            (update x 1
+              (fn [attrs]
+                (reduce
+                  (fn [new-attrs [k v]]
+                    (assoc new-attrs
+                      k (if (.startsWith (name k) "on-")
+                          (partial add-event (:id attrs))
+                          v)))
+                  {}
+                  attrs)))
             x))
         ?value)
       empty-comp
