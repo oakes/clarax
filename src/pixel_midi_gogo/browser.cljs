@@ -1,8 +1,8 @@
-(ns pixi-midi-gogo.browser
+(ns pixel-midi-gogo.browser
   (:require [clara.rules :as rules :refer [defrule]]
             [rum.core :as rum]
             [clojure.walk :as walk]
-            [pixi-midi-gogo.core :refer [insert *session]]))
+            [pixel-midi-gogo.core :refer [insert *session]]))
 
 (defrecord Element [parent value])
 

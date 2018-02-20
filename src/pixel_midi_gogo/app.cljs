@@ -1,16 +1,16 @@
-(ns pixi-midi-gogo.app
-  (:require [pixi-midi-gogo.core :refer [Fact insert]]
-            [pixi-midi-gogo.browser :refer [Element ->Element Event]]
+(ns pixel-midi-gogo.app
+  (:require [pixel-midi-gogo.core :refer [Fact insert]]
+            [pixel-midi-gogo.browser :refer [Element ->Element Event]]
             [clara.rules :as rules]
             [clara.rules.accumulators :refer [all]])
-  (:require-macros [pixi-midi-gogo.core :refer [read-rules]]))
+  (:require-macros [pixel-midi-gogo.core :refer [read-rules]]))
 
 (defrecord Person [name email])
 
 (defrecord ListItem [text])
 
 (read-rules
-  [pixi-midi-gogo.core pixi-midi-gogo.browser]
+  [pixel-midi-gogo.core pixel-midi-gogo.browser]
   {:on [[?facts <- (all) :from [Fact (= ?id id) (some? id)]]]
    :do [(let [facts (sort-by :timestamp ?facts)
               current-fact (last facts)

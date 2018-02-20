@@ -1,10 +1,10 @@
-(ns pixi-midi-gogo.core
+(ns pixel-midi-gogo.core
   (:require [clara.macros :as macros]
             [clara.rules :as rules]
             [cljs.env :as env]
             [clara.rules.dsl :as dsl]))
 
-(def ^:const ns-sym 'pixi-midi-gogo.core)
+(def ^:const ns-sym 'pixel-midi-gogo.core)
 
 (defn add-rule [name body]
   (->> (dsl/build-rule name body)
@@ -24,6 +24,6 @@
         _ (add-rules (filterv :on rules))
         session (macros/sources-and-options->session-assembly-form
                   (map #(list 'quote %) nses))]
-    `(reset! pixi-midi-gogo.core/*session
+    `(reset! pixel-midi-gogo.core/*session
        (-> ~session ~@init-forms rules/fire-rules))))
 

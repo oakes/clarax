@@ -1,6 +1,6 @@
 ## Introduction
 
-PixiMidiGogo is dope.
+PixelMidiGogo is dope.
 
 ## Licensing
 

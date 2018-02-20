@@ -19,7 +19,7 @@
   '[boot-tools-deps.core :refer [deps]])
 
 (task-options!
-  pom {:project 'pixi-midi-gogo
+  pom {:project 'pixel-midi-gogo
        :version "1.0.0-SNAPSHOT"
        :url "https://github.com/oakes/PixiMidiGogo"
        :license {"Public Domain" "http://unlicense.org/UNLICENSE"}

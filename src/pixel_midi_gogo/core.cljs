@@ -1,4 +1,4 @@
-(ns pixi-midi-gogo.core
+(ns pixel-midi-gogo.core
   (:require [clara.rules :as rules]))
 
 (def *session (atom nil))
