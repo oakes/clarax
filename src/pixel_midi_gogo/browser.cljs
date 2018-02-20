@@ -30,15 +30,16 @@
   (-> (walk/postwalk
         (fn [x]
           (if (and (vector? x)
-                   (map? (second x))
-                   (:id (second x)))
+                   (map? (second x)))
             (update x 1
               (fn [attrs]
                 (reduce
                   (fn [new-attrs [k v]]
                     (assoc new-attrs
                       k (if (.startsWith (name k) "on-")
-                          (partial add-event (:id attrs))
+                          (if-let [id (:id attrs)]
+                            (partial add-event id)
+                            (throw (js/Error. (str k " must be accompanied by :id"))))
                           v)))
                   {}
                   attrs)))
