@@ -2,8 +2,7 @@
   (:require [pixi-midi-gogo.core :refer [Fact insert]]
             [pixi-midi-gogo.browser :refer [Element ->Element Event]]
             [clara.rules :as rules]
-            [clara.rules.accumulators :refer [all]]
-            [clara.tools.inspect :refer [explain-activations]])
+            [clara.rules.accumulators :refer [all]])
   (:require-macros [pixi-midi-gogo.core :refer [read-rules]]))
 
 (defrecord Person [name email])
@@ -13,10 +12,14 @@
 (read-rules
   [pixi-midi-gogo.core pixi-midi-gogo.browser]
   {:on [[?facts <- (all) :from [Fact (= ?id id) (some? id)]]]
-   :do [(doseq [{:keys [value] :as fact} (butlast (sort-by :timestamp ?facts))]
-          (rules/retract! fact)
-          (when (record? value)
-            (rules/retract! value)))]}
+   :do [(let [facts (sort-by :timestamp ?facts)
+              current-fact (last facts)
+              old-facts (butlast facts)]
+          (doseq [{:keys [value] :as fact} old-facts]
+            (rules/retract! fact)
+            (when (and (record? value)
+                       (not= value (:value current-fact)))
+              (rules/retract! value))))]}
   {:on [[Person (= ?name name)]]
    :do [(insert nil (->ListItem (str "Hello, " ?name)))]}
   {:on [[Person (= ?email email)]

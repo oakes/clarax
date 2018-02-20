@@ -21,7 +21,7 @@
             (assoc x :on-click #(swap! *session
                                   (fn [session]
                                     (-> session
-                                        (insert nil (->Event (:id x) "click"))
+                                        (insert ::clicks (->Event (:id x) "click"))
                                         rules/fire-rules))))
             x))
         ?value)
