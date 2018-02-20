@@ -1,8 +1,12 @@
 (ns pixi-midi-gogo.browser
-  (:require [clara.rules :refer [defrule]]
-            [rum.core :as rum]))
+  (:require [clara.rules :as rules :refer [defrule]]
+            [rum.core :as rum]
+            [clojure.walk :as walk]
+            [pixi-midi-gogo.core :refer [insert *session]]))
 
 (defrecord Element [parent value])
+
+(defrecord Event [id type])
 
 (rum/defc empty-comp
   [content]
@@ -11,7 +15,16 @@
 (defrule elem
   [Element (= ?parent parent) (= ?value value)]
   =>
-  (rum/mount
-    (empty-comp ?value)
-    (.querySelector js/document ?parent)))
+  (-> (walk/postwalk
+        (fn [x]
+          (if (and (map? x) (:id x))
+            (assoc x :on-click #(swap! *session
+                                  (fn [session]
+                                    (-> session
+                                        (insert nil (->Event (:id x) "click"))
+                                        rules/fire-rules))))
+            x))
+        ?value)
+      empty-comp
+      (rum/mount (.querySelector js/document ?parent))))
 

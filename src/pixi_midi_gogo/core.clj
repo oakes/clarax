@@ -1,5 +1,6 @@
 (ns pixi-midi-gogo.core
   (:require [clara.macros :as macros]
+            [clara.rules :as rules]
             [cljs.env :as env]
             [clara.rules.dsl :as dsl]))
 
@@ -23,5 +24,6 @@
         _ (add-rules (filterv :on rules))
         session (macros/sources-and-options->session-assembly-form
                   (map #(list 'quote %) nses))]
-    `(-> ~session ~@init-forms)))
+    `(reset! pixi-midi-gogo.core/*session
+       (-> ~session ~@init-forms rules/fire-rules))))
 

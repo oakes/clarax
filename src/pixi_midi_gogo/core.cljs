@@ -1,6 +1,8 @@
 (ns pixi-midi-gogo.core
   (:require [clara.rules :as rules]))
 
+(def *session (atom nil))
+
 (defrecord Fact [id timestamp value])
 
 (defn insert
