@@ -1,5 +1,5 @@
 (ns pixel-midi-gogo.app
-  (:require [pixel-midi-gogo.core :refer [Fact insert]]
+  (:require [pixel-midi-gogo.core :refer [Fact insert delete]]
             [pixel-midi-gogo.element :refer [Element ->Element]]
             [pixel-midi-gogo.event :refer [Event]]
             [clara.rules :as rules]
@@ -13,14 +13,7 @@
 (read-rules
   [pixel-midi-gogo.core pixel-midi-gogo.element pixel-midi-gogo.event]
   {:on [[?facts <- (all) :from [Fact (= ?id id) (some? id)]]]
-   :do [(let [facts (sort-by :timestamp ?facts)
-              current-fact (last facts)
-              old-facts (butlast facts)]
-          (doseq [{:keys [value] :as fact} old-facts]
-            (rules/retract! fact)
-            (when (and (record? value)
-                       (not= value (:value current-fact)))
-              (rules/retract! value))))]}
+   :do [(delete ?facts)]}
   {:on [[Person (= ?name name)]]
    :do [(insert nil (->ListItem (str "Hello, " ?name)))]}
   {:on [[Person (= ?email email)]

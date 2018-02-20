@@ -15,3 +15,14 @@
            true (rules/insert (->Fact id (.getTime (js/Date.)) value))
            (record? value) (rules/insert value))))
 
+(defn delete
+  [facts]
+  (let [facts (sort-by :timestamp facts)
+        current-fact (last facts)
+        old-facts (butlast facts)]
+    (doseq [{:keys [value] :as fact} old-facts]
+      (rules/retract! fact)
+      (when (and (record? value)
+                 (not= value (:value current-fact)))
+        (rules/retract! value)))))
+
