@@ -1,28 +1,14 @@
-(ns pixel-midi-gogo.browser
-  (:require [clara.rules :as rules :refer [defrule]]
+(ns pixel-midi-gogo.element
+  (:require [clara.rules :refer [defrule]]
             [rum.core :as rum]
             [clojure.walk :as walk]
-            [pixel-midi-gogo.core :refer [insert *session]]))
+            [pixel-midi-gogo.event :refer [add-event]]))
 
 (defrecord Element [parent value])
-
-(defrecord Event [id type options])
 
 (rum/defc empty-comp
   [content]
   content)
-
-(defn jsx->clj
-  [x]
-  (into {} (for [k (.keys js/Object x)] [k (aget x k)])))
-
-(defn add-event [id e]
-  (let [{:strs [type] :as opts} (jsx->clj e)]
-    (swap! *session
-      (fn [session]
-        (-> session
-            (insert (keyword type (name id)) (->Event id type opts))
-            rules/fire-rules)))))
 
 (defrule elem
   [Element (= ?parent parent) (= ?value value)]

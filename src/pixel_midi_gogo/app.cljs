@@ -1,6 +1,7 @@
 (ns pixel-midi-gogo.app
   (:require [pixel-midi-gogo.core :refer [Fact insert]]
-            [pixel-midi-gogo.browser :refer [Element ->Element Event]]
+            [pixel-midi-gogo.element :refer [Element ->Element]]
+            [pixel-midi-gogo.event :refer [Event]]
             [clara.rules :as rules]
             [clara.rules.accumulators :refer [all]])
   (:require-macros [pixel-midi-gogo.core :refer [read-rules]]))
@@ -10,7 +11,7 @@
 (defrecord ListItem [text])
 
 (read-rules
-  [pixel-midi-gogo.core pixel-midi-gogo.browser]
+  [pixel-midi-gogo.core pixel-midi-gogo.element pixel-midi-gogo.event]
   {:on [[?facts <- (all) :from [Fact (= ?id id) (some? id)]]]
    :do [(let [facts (sort-by :timestamp ?facts)
               current-fact (last facts)
