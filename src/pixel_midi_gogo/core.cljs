@@ -30,5 +30,6 @@
       (rules/retract! fact)
       (when (and (record? value)
                  (not= value (:value current-fact)))
-        (rules/retract! value)))))
+        (rules/retract! value)))
+    current-fact))
 

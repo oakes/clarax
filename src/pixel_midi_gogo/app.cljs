@@ -1,6 +1,6 @@
 (ns pixel-midi-gogo.app
   (:require [pixel-midi-gogo.core :refer [Def map->Def]]
-            [pixel-midi-gogo.element :refer [Element map->Element]]
+            [pixel-midi-gogo.view :refer [View map->View]]
             [pixel-midi-gogo.event :refer [Event]]
             [clara.rules :as rules]
             [clara.rules.accumulators :refer [all]])
@@ -11,7 +11,7 @@
 (defrecord ListItem [text])
 
 (read-rules
-  [pixel-midi-gogo.core pixel-midi-gogo.element pixel-midi-gogo.event]
+  [pixel-midi-gogo.core pixel-midi-gogo.view pixel-midi-gogo.event]
   
   (map->Def {:id :stuff, :value [:div "Hi"]})
   (map->Def {:id :contact, :value (->Person "Alice" "alice@sekao.net")})
@@ -36,17 +36,15 @@
   :select
   [?items <- (all) :from [ListItem]]
   :insert
-  (map->Def
-    {:id :root
-     :value (map->Element
-              {:parent "#app"
-               :value [:div
-                       [:input {:id :input
-                                :on-key-down true}]
-                       [:button {:id :btn
-                                 :on-click true}
-                        "Click!"]
-                       (into [:ul]
-                         (for [item ?items]
-                           [:li (:text item)]))]})}))
+  (map->View
+    {:parent "#app"
+     :value [:div
+             [:input {:id :input
+                      :on-key-down true}]
+             [:button {:id :btn
+                       :on-click true}
+              "Click!"]
+             (into [:ul]
+               (for [item ?items]
+                 [:li (:text item)]))]}))
 
