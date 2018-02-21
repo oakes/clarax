@@ -3,21 +3,27 @@
 
 (def *session (atom nil))
 
-(defrecord Fact [id timestamp value])
+(defrecord Fact [id value])
 
 (defn insert
-  ([id value]
-   (rules/insert! (->Fact id (.getTime (js/Date.)) value))
-   (when (record? value)
-     (rules/insert! value)))
-  ([session id value]
-   (cond-> session
-           true (rules/insert (->Fact id (.getTime (js/Date.)) value))
-           (record? value) (rules/insert value))))
+  ([fact]
+   (let [meta-map {:timestamp (.getTime (js/Date.))}]
+     (rules/insert! (with-meta fact meta-map))
+     (when (and (instance? Fact fact)
+                (record? (:value fact)))
+       (rules/insert! (with-meta (:value fact) meta-map)))))
+  ([session fact]
+   (let [meta-map {:timestamp (.getTime (js/Date.))}]
+     (cond-> session
+             true
+             (rules/insert (with-meta fact meta-map))
+             (and (instance? Fact fact)
+                  (record? (:value fact)))
+             (rules/insert (with-meta (:value fact) meta-map))))))
 
 (defn delete
   [facts]
-  (let [facts (sort-by :timestamp facts)
+  (let [facts (sort-by #(-> % meta :timestamp) facts)
         current-fact (last facts)
         old-facts (butlast facts)]
     (doseq [{:keys [value] :as fact} old-facts]
