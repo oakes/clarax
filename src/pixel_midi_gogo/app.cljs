@@ -1,6 +1,6 @@
 (ns pixel-midi-gogo.app
-  (:require [pixel-midi-gogo.core :refer [Def ->Def]]
-            [pixel-midi-gogo.element :refer [Element ->Element]]
+  (:require [pixel-midi-gogo.core :refer [Def map->Def]]
+            [pixel-midi-gogo.element :refer [Element map->Element]]
             [pixel-midi-gogo.event :refer [Event]]
             [clara.rules :as rules]
             [clara.rules.accumulators :refer [all]])
@@ -13,14 +13,14 @@
 (read-rules
   [pixel-midi-gogo.core pixel-midi-gogo.element pixel-midi-gogo.event]
   
-  (->Def :stuff [:div "Hi"])
-  (->Def :contact (->Person "Alice" "alice@sekao.net"))
-  (->Def :contact (->Person "Bob" "bob@sekao.net"))
+  (map->Def {:id :stuff, :value [:div "Hi"]})
+  (map->Def {:id :contact, :value (->Person "Alice" "alice@sekao.net")})
+  (map->Def {:id :contact, :value (->Person "Bob" "bob@sekao.net")})
   
   :select
   [Person (= ?name name)]
   :insert
-  (->ListItem (str "Hello, " ?name))
+  (map->ListItem {:text (str "Hello, " ?name)})
   
   :select
   [Person (= ?email email)]
@@ -36,15 +36,17 @@
   :select
   [?items <- (all) :from [ListItem]]
   :insert
-  (->Def :root
-    (->Element "#app"
-               [:div
-                [:input {:id :input
-                         :on-key-down true}]
-                [:button {:id :btn
-                          :on-click true}
-                 "Click!"]
-                (into [:ul]
-                  (for [item ?items]
-                    [:li (:text item)]))])))
+  (map->Def
+    {:id :root
+     :value (map->Element
+              {:parent "#app"
+               :value [:div
+                       [:input {:id :input
+                                :on-key-down true}]
+                       [:button {:id :btn
+                                 :on-click true}
+                        "Click!"]
+                       (into [:ul]
+                         (for [item ?items]
+                           [:li (:text item)]))]})}))
 
