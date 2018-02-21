@@ -41,10 +41,10 @@
   (set-env! :resource-paths #{"src" "dev-resources"})
   (comp
     (deps :aliases [:cljs])
-    (serve :dir "target/public")
+    (serve :dir "target/pixel_midi_gogo")
     (nightlight :port 4000 #_#_:url "http://localhost:3000")
     (watch)
-    (reload :asset-path "public")
+    (reload :asset-path "pixel_midi_gogo")
     (cljs
       :optimizations :none
       :compiler-options {:asset-path "/main.out"})

@@ -12,5 +12,5 @@
 
 (init
   [pixel-midi-gogo.core pixel-midi-gogo.view pixel-midi-gogo.event]
-  ["app.edn"])
+  ["dev-resources/pixel_midi_gogo/app.edn"])
 
