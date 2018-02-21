@@ -1,5 +1,5 @@
 (ns pixel-midi-gogo.app
-  (:require [pixel-midi-gogo.core :refer [Fact ->Fact]]
+  (:require [pixel-midi-gogo.core :refer [Def ->Def]]
             [pixel-midi-gogo.element :refer [Element ->Element]]
             [pixel-midi-gogo.event :refer [Event]]
             [clara.rules :as rules]
@@ -13,9 +13,9 @@
 (read-rules
   [pixel-midi-gogo.core pixel-midi-gogo.element pixel-midi-gogo.event]
   
-  (->Fact :stuff [:div "Hi"])
-  (->Fact :contact (->Person "Alice" "alice@sekao.net"))
-  (->Fact :contact (->Person "Bob" "bob@sekao.net"))
+  (->Def :stuff [:div "Hi"])
+  (->Def :contact (->Person "Alice" "alice@sekao.net"))
+  (->Def :contact (->Person "Bob" "bob@sekao.net"))
   
   :select
   [Person (= ?name name)]
@@ -24,7 +24,7 @@
   
   :select
   [Person (= ?email email)]
-  [Fact (= id :stuff) (= ?value value)]
+  [Def (= id :stuff) (= ?value value)]
   :execute
   (js/console.log ?email (pr-str ?value))
   
@@ -36,7 +36,7 @@
   :select
   [?items <- (all) :from [ListItem]]
   :insert
-  (->Fact :root
+  (->Def :root
     (->Element "#app"
                [:div
                 [:input {:id :input

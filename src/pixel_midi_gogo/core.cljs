@@ -3,13 +3,13 @@
 
 (def *session (atom nil))
 
-(defrecord Fact [id value])
+(defrecord Def [id value])
 
 (defn insert
   ([fact]
    (let [meta-map {:timestamp (.getTime (js/Date.))}]
      (rules/insert! (with-meta fact meta-map))
-     (when (and (instance? Fact fact)
+     (when (and (instance? Def fact)
                 (record? (:value fact)))
        (rules/insert! (with-meta (:value fact) meta-map)))))
   ([session fact]
@@ -17,7 +17,7 @@
      (cond-> session
              true
              (rules/insert (with-meta fact meta-map))
-             (and (instance? Fact fact)
+             (and (instance? Def fact)
                   (record? (:value fact)))
              (rules/insert (with-meta (:value fact) meta-map))))))
 

@@ -8,7 +8,7 @@
 
 (def default-rules
   '[{:select [[?facts <- (clara.rules.accumulators/all)
-               :from [pixel-midi-gogo.core/Fact (= ?id id) (some? id)]]]
+               :from [pixel-midi-gogo.core/Def (= ?id id) (some? id)]]]
      :execute [(pixel-midi-gogo.core/delete ?facts)]}])
 
 (defn add-rule [name body]

@@ -1,5 +1,5 @@
 (ns pixel-midi-gogo.event
-  (:require [pixel-midi-gogo.core :refer [insert *session ->Fact]]
+  (:require [pixel-midi-gogo.core :refer [insert *session ->Def]]
             [clara.rules :as rules]))
 
 (defrecord Event [id type options])
@@ -13,6 +13,6 @@
     (swap! *session
       (fn [session]
         (-> session
-            (insert (->Fact (keyword type (name id)) (->Event id type opts)))
+            (insert (->Def (keyword type (name id)) (->Event id type opts)))
             rules/fire-rules)))))
 
