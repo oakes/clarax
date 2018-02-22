@@ -54,7 +54,7 @@
                    {}
                    (keys @*files))]
        (when (not= @*files files)
-         (spit main-cljs-file (slurp main-cljs-file))
+         (-> main-cljs-file (io/file) (.setLastModified (System/currentTimeMillis)))
          (reset! *files files))))
    (when-not @*web-server
      (->> (merge {:port 0} opts)
