@@ -11,9 +11,11 @@
 (def ^:const ns-sym 'pixel-midi-gogo.core)
 
 (def default-rules
-  '[{:select {:forms [[?facts <- (clara.rules.accumulators/all)
-                       :from [pixel-midi-gogo.core/Def (= ?id id) (some? id)]]]}
-     :right-side [[:execute {:forms [(pixel-midi-gogo.core/delete ?facts)]}]]}])
+  '[:select
+    [?facts <- (clara.rules.accumulators/all)
+     :from [pixel-midi-gogo.core/Def (= ?id id) (some? id)]]
+    :execute
+    (pixel-midi-gogo.core/delete ?facts)])
 
 (defn add-rule [name body]
   (->> (dsl/build-rule name body)
@@ -59,13 +61,14 @@
                 :rules (s/* ::rule)))
 
 (defmacro init [nses files]
-  (let [parsed-files (mapv #(->> % read-file (s/conform ::file)) files)
+  (let [parsed-files (mapv #(s/conform ::file
+                              (-> % read-file (concat default-rules)))
+                       files)
         init-forms (->> parsed-files
                         (mapcat :init-forms)
                         (mapv #(list 'pixel-midi-gogo.core/insert %)))
         rules (->> parsed-files
                    (mapcat :rules)
-                   (concat default-rules)
                    vec)
         _ (add-rules rules)
         session (macros/sources-and-options->session-assembly-form
