@@ -41,7 +41,7 @@
     (deps :aliases [:cljs])
     (nightlight :port 4000 #_#_:url "http://localhost:3000")
     (watch)
-    (reload :asset-path "pixel_midi_gogo")
+    (reload :asset-path "public")
     (cljs
       :optimizations :none
       :compiler-options {:asset-path "/main.out"})

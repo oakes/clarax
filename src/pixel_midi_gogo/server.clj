@@ -44,7 +44,7 @@
 (defn start
   ([opts]
    (-> handler
-       (wrap-resource "pixel_midi_gogo")
+       (wrap-resource "public")
        (start opts)))
   ([app {:keys [main-cljs-file] :as opts}]
    (when main-cljs-file
@@ -64,10 +64,10 @@
           print-server))))
 
 (defn dev-start [opts]
-  (.mkdirs (io/file "target" "pixel_midi_gogo"))
+  (.mkdirs (io/file "target" "public"))
   (start (-> #'handler
              (wrap-reload)
-             (wrap-file "target/pixel_midi_gogo"))
+             (wrap-file "target/public"))
     opts))
 
 (def cli-options
