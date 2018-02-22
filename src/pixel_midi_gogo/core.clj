@@ -3,6 +3,7 @@
             [clara.rules :as rules]
             [cljs.env :as env]
             [clara.rules.dsl :as dsl]
+            [clara.rules.compiler :as com]
             [clojure.java.io :as io]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]))
@@ -60,6 +61,8 @@
         _ (add-rules rules)
         session (macros/sources-and-options->session-assembly-form
                   (map #(list 'quote %) nses))]
-    `(reset! pixel-midi-gogo.core/*session
-       (-> ~session ~@init-forms rules/fire-rules))))
+    `(do
+       (pixel-midi-gogo.core/watch-files ~files)
+       (reset! pixel-midi-gogo.core/*session
+         (-> ~session ~@init-forms rules/fire-rules)))))
 

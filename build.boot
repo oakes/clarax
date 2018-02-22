@@ -2,7 +2,6 @@
   :resource-paths #{"src"}
   :dependencies '[[adzerk/boot-cljs "2.1.4" :scope "test"]
                   [adzerk/boot-reload "0.5.2" :scope "test"]
-                  [pandeiro/boot-http "0.7.3" :scope "test"]
                   [nightlight "RELEASE" :scope "test"]
                   [seancorfield/boot-tools-deps "0.1.4" :scope "test"]]
   :repositories (conj (get-env :repositories)
@@ -14,7 +13,6 @@
   '[clojure.edn :as edn]
   '[adzerk.boot-cljs :refer [cljs]]
   '[adzerk.boot-reload :refer [reload]]
-  '[pandeiro.boot-http :refer [serve]]
   '[nightlight.boot :refer [nightlight]]
   '[boot-tools-deps.core :refer [deps]])
 
@@ -41,13 +39,15 @@
   (set-env! :resource-paths #{"src" "dev-resources"})
   (comp
     (deps :aliases [:cljs])
-    (serve :dir "target/pixel_midi_gogo")
     (nightlight :port 4000 #_#_:url "http://localhost:3000")
     (watch)
     (reload :asset-path "pixel_midi_gogo")
     (cljs
       :optimizations :none
       :compiler-options {:asset-path "/main.out"})
+    (with-pass-thru _
+      (require '[pixel-midi-gogo.server :refer [dev-start]])
+      ((resolve 'dev-start) {:port 3000 :main-cljs-file "dev-resources/pixel_midi_gogo/app.cljs"}))
     (target)))
 
 (deftask local []

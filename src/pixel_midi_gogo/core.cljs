@@ -1,5 +1,6 @@
 (ns pixel-midi-gogo.core
-  (:require [clara.rules :as rules]))
+  (:require [clara.rules :as rules])
+  (:import goog.net.XhrIo))
 
 (def *session (atom nil))
 
@@ -32,4 +33,12 @@
                  (not= value (:value current-fact)))
         (rules/retract! value)))
     current-fact))
+
+(defn watch-files [files]
+  (when-not js/COMPILED
+    (.send XhrIo
+      "/watch"
+      (fn [])
+      "POST"
+      (pr-str files))))
 
