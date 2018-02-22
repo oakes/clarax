@@ -3,17 +3,17 @@
             [clara.rules :as rules]
             [cljs.env :as env]
             [clara.rules.dsl :as dsl]
-            [clara.rules.compiler :as com]
             [clojure.java.io :as io]
             [clojure.tools.reader :as r]
-            [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]))
+            [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]
+            [clojure.spec.alpha :as s]))
 
 (def ^:const ns-sym 'pixel-midi-gogo.core)
 
 (def default-rules
-  '[{:select [[?facts <- (clara.rules.accumulators/all)
-               :from [pixel-midi-gogo.core/Def (= ?id id) (some? id)]]]
-     :execute [(pixel-midi-gogo.core/delete ?facts)]}])
+  '[{:select {:forms [[?facts <- (clara.rules.accumulators/all)
+                       :from [pixel-midi-gogo.core/Def (= ?id id) (some? id)]]]}
+     :right-side [[:execute {:forms [(pixel-midi-gogo.core/delete ?facts)]}]]}])
 
 (defn add-rule [name body]
   (->> (dsl/build-rule name body)
@@ -22,11 +22,14 @@
 (defn add-rules [rules]
   (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
   (doseq [i (range (count rules))
-          :let [{:keys [select insert execute]} (get rules i)
-                sym (symbol (str "rule-" i))]]
-    (add-rule sym (concat select ['=>] execute
-                    (map #(list 'pixel-midi-gogo.core/insert %)
-                      insert)))))
+          :let [{:keys [select right-side]} (get rules i)
+                sym (symbol (str "rule-" i))
+                {:keys [insert execute]} (into {} right-side)
+                right-side (->> (:forms insert)
+                                (map #(list 'pixel-midi-gogo.core/insert %))
+                                (concat (:forms execute)))]]
+    (add-rule sym (concat (:forms select) ['=>]
+                    (if (empty? right-side) ['(do)] right-side)))))
 
 (defn read-file [filename]
   (let [reader (indexing-push-back-reader (slurp (io/reader filename)))]
@@ -35,29 +38,35 @@
         (recur (conj forms form))
         forms))))
 
-(defn read-init-forms [forms]
-  (->> forms
-       (take-while #(not (keyword? %)))
-       (map #(list 'pixel-midi-gogo.core/insert %))))
-
-(defn read-rules [forms]
-  (->> forms
-       (drop-while #(not (keyword? %)))
-       (partition-by keyword?)
-       (partition 2)
-       (reduce
-         (fn [new-rules [header code]]
-           (if (= (first header) :select)
-             (conj new-rules {:select code})
-             (if (seq new-rules)
-               (update new-rules (dec (count new-rules))
-                 assoc (first header) code))))
-         default-rules)))
+(s/def ::callable-form list?)
+(s/def ::query-form vector?)
+(s/def ::select-block (s/cat
+                        :header #{:select}
+                        :forms (s/* ::query-form)))
+(s/def ::insert-block (s/cat
+                        :header #{:insert}
+                        :forms (s/* ::callable-form)))
+(s/def ::execute-block (s/cat
+                         :header #{:execute}
+                         :forms (s/* ::callable-form)))
+(s/def ::rule (s/cat
+                :select ::select-block
+                :right-side (s/* (s/alt
+                                   :insert ::insert-block
+                                   :execute ::execute-block))))
+(s/def ::file (s/cat
+                :init-forms (s/* ::callable-form)
+                :rules (s/* ::rule)))
 
 (defmacro init [nses files]
-  (let [forms (mapv read-file files)
-        init-forms (vec (mapcat read-init-forms forms))
-        rules (vec (mapcat read-rules forms))
+  (let [parsed-files (mapv #(->> % read-file (s/conform ::file)) files)
+        init-forms (->> parsed-files
+                        (mapcat :init-forms)
+                        (mapv #(list 'pixel-midi-gogo.core/insert %)))
+        rules (->> parsed-files
+                   (mapcat :rules)
+                   (concat default-rules)
+                   vec)
         _ (add-rules rules)
         session (macros/sources-and-options->session-assembly-form
                   (map #(list 'quote %) nses))]
