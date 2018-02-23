@@ -19,8 +19,10 @@
 
 (defn handler [{:keys [uri] :as request}]
   (or (case uri
-        ;"/"
-        ;(redirect "index.html")
+        "/"
+        {:status 200
+         :headers {"Content-Type" "text/html"}
+         :body (-> "public/index.html" io/resource slurp)}
         "/watch"
         (do
           (->> request :body .bytes slurp
@@ -59,7 +61,7 @@
    (when-not @*web-server
      (->> (merge {:port 0} opts)
           (reset! *options)
-          (run-server (-> app wrap-content-type wrap-params wrap-keyword-params))
+          (run-server (-> app #_wrap-content-type wrap-params wrap-keyword-params))
           (reset! *web-server)
           print-server))))
 
