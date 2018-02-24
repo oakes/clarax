@@ -1,16 +1,25 @@
 (->TodoItem "Hello, world!")
+(->Def :input-value "")
 
 :select
-[Event (= ?data data) (= ?options options)]
-:execute
-(js/console.log "Event" (pr-str ?data))
+[Event [{{:keys [id]} :data, opts :options}] (= id :input) (= opts ?opts)]
+:insert
+(->Def :input-value (-> ?opts :target .-value))
+
+:select
+[Event [{{:keys [id]} :data, opts :options}] (= id :btn) (= opts ?opts)]
+[?input <- Def (= id :input-value)]
+:insert
+(->TodoItem (:value ?input))
 
 :select
 [?items <- (all) :from [TodoItem]]
+[?input <- Def (= id :input-value)]
 :insert
 (->View "#app"
   [:div
-   [:input {:on-key-down {:id :input}}]
+   [:input {:value (:value ?input)
+            :on-change {:id :input}}]
    [:button {:on-click {:id :btn}}
     "Add item"]
    (into [:ul]

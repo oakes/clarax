@@ -1,6 +1,7 @@
 (ns pixel-midi-gogo.event
   (:require [pixel-midi-gogo.core :refer [insert *session ->Def]]
-            [clara.rules :as rules]))
+            [clara.rules :as rules]
+            [clojure.walk :as walk]))
 
 (defrecord Event [data options])
 
@@ -12,15 +13,10 @@
   (let [{:keys [type]
          :as opts} (->> e
                         jsx->clj
-                        (reduce
-                          (fn [opts [k v]]
-                            (if (instance? js/Object v)
-                              opts
-                              (assoc opts (keyword k) v)))
-                          {}))]
+                        walk/keywordize-keys)]
     (swap! *session
       (fn [session]
         (-> session
-            (insert (->Def (keyword "pixel-midi-gogo.event" type) (->Event data opts)))
+            (insert (->Event data opts))
             rules/fire-rules)))))
 
