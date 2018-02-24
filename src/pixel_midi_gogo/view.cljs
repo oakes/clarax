@@ -21,9 +21,7 @@
           (fn [new-attrs [k v]]
             (assoc new-attrs
               k (if (.startsWith (name k) "on-")
-                  (if-let [id (:id attrs)]
-                    (partial add-event id)
-                    (throw (js/Error. (str k " must be accompanied by :id"))))
+                  (partial add-event v)
                   v)))
           {}
           attrs)))

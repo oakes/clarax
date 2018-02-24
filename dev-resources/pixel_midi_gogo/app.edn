@@ -1,35 +1,20 @@
-(map->Def {:id :stuff, :value [:div "Hi"]})
-(map->Def {:id :contact, :value (->Person "Alice" "alice@sekao.net")})
-(map->Def {:id :contact, :value (->Person "Bob" "bob@sekao.net")})
+(->TodoItem "Hello, world!")
 
 :select
-[Person (= ?name name)]
-:insert
-(map->ListItem {:text (str "Hello, " ?name)})
-
-:select
-[Person (= ?email email)]
-[Def (= id :stuff) (= ?value value)]
+[Event (= ?data data) (= ?options options)]
 :execute
-(js/console.log ?email (pr-str ?value))
+(js/console.log "Event" (pr-str ?data))
 
 :select
-[Event (= ?id id) (= ?type type)]
-:execute
-(js/console.log "Event" (pr-str ?id) ?type)
-
-:select
-[?items <- (all) :from [ListItem]]
+[?items <- (all) :from [TodoItem]]
 :insert
-(map->View
-  {:parent "#app"
-   :value [:div
-           [:input {:id :input
-                    :on-key-down true}]
-           [:button {:id :btn
-                     :on-click true}
-            "Click!"]
-           (into [:ul]
-             (for [item ?items]
-               [:li (:text item)]))]})
+(->View "#app"
+  [:div
+   [:input {:on-key-down {:id :input}}]
+   [:button {:on-click {:id :btn}}
+    "Add item"]
+   (into [:ul]
+     (for [item ?items]
+       [:li (:text item)
+        [:button {:on-click item} "Remove item"]]))])
 

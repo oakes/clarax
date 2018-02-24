@@ -1,14 +1,12 @@
 (ns pixel-midi-gogo.app
-  (:require [pixel-midi-gogo.core :refer [Def map->Def]]
-            [pixel-midi-gogo.view :refer [View map->View]]
+  (:require [pixel-midi-gogo.core :refer [Def ->Def]]
+            [pixel-midi-gogo.view :refer [View ->View]]
             [pixel-midi-gogo.event :refer [Event]]
             [clara.rules :as rules]
             [clara.rules.accumulators :refer [all]])
   (:require-macros [pixel-midi-gogo.core :as pmg]))
 
-(defrecord Person [name email])
-
-(defrecord ListItem [text])
+(defrecord TodoItem [text])
 
 (defn init []
   (pmg/init
