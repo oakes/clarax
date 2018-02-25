@@ -2,21 +2,21 @@
 [Def :id :input-value, :value ""]
 
 :select
-[Event [{{:keys [id]} :data, opts :options}] (= id :input) (= opts ?opts)]
+[Event (= (:id data) :input), :options ?opts]
 :insert
 [Def :id :input-value, :value (-> ?opts :target .-value)]
 
 :select
-[?event <- Event [{{:keys [id]} :data, opts :options}] (= id :btn) (= opts ?opts)]
+[?event <- Event (= (:id data) :btn), :options ?opts]
 [?input <- (acc/max :timestamp :returns-fact true)
- :from [Def (= id :input-value) (< timestamp (:timestamp ?event))]]
+ Def (< timestamp (:timestamp ?event))
+ :id :input-value]
 :insert
 [TodoItem :text (:value ?input)]
 
 :select
-[?items <- (acc/all) :from [TodoItem]]
-[?input <- (acc/max :timestamp :returns-fact true)
- :from [Def (= id :input-value)]]
+[?items <- (acc/all) TodoItem]
+[?input <- (acc/max :timestamp :returns-fact true) Def :id :input-value]
 :insert
 [View
  :parent "#app"
