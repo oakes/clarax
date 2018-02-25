@@ -1,20 +1,22 @@
 (->TodoItem "Hello, world!")
-(->Def :input-value "")
+(->Def :input-value "" (.getTime (js/Date.)))
 
 :select
 [Event [{{:keys [id]} :data, opts :options}] (= id :input) (= opts ?opts)]
 :insert
-(->Def :input-value (-> ?opts :target .-value))
+(->Def :input-value (-> ?opts :target .-value) (.getTime (js/Date.)))
 
 :select
-[Event [{{:keys [id]} :data, opts :options}] (= id :btn) (= opts ?opts)]
-[?input <- Def (= id :input-value)]
+[?event <- Event [{{:keys [id]} :data, opts :options}] (= id :btn) (= opts ?opts)]
+[?input <- (acc/max :timestamp :returns-fact true)
+ :from [Def (= id :input-value) (< timestamp (:timestamp ?event))]]
 :insert
 (->TodoItem (:value ?input))
 
 :select
-[?items <- (all) :from [TodoItem]]
-[?input <- Def (= id :input-value)]
+[?items <- (acc/all) :from [TodoItem]]
+[?input <- (acc/max :timestamp :returns-fact true)
+ :from [Def (= id :input-value)]]
 :insert
 (->View "#app"
   [:div
@@ -25,5 +27,6 @@
    (into [:ul]
      (for [item ?items]
        [:li (:text item)
-        [:button {:on-click item} "Remove item"]]))])
+        [:button {:on-click item} "Remove item"]]))]
+  (.getTime (js/Date.)))
 

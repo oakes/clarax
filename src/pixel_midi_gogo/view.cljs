@@ -2,11 +2,10 @@
   (:require [clara.rules :refer [defrule]]
             [rum.core :as rum]
             [clojure.walk :as walk]
-            [pixel-midi-gogo.core :refer [delete]]
             [pixel-midi-gogo.event :refer [add-event]]
-            [clara.rules.accumulators :refer [all]]))
+            [clara.rules.accumulators :as acc]))
 
-(defrecord View [parent value])
+(defrecord View [parent value timestamp])
 
 (rum/defc empty-comp
   [content]
@@ -28,10 +27,10 @@
     x))
 
 (defrule views
-  [?views <- (all) :from [View (= ?parent parent)]]
+  [?view <- (acc/max :timestamp :returns-fact true)
+   :from [View (= ?parent parent)]]
   =>
-  (when-let [{:keys [parent value]} (delete ?views)]
-    (-> (walk/postwalk update-attrs value)
-        empty-comp
-        (rum/mount (.querySelector js/document parent)))))
+  (-> (walk/postwalk update-attrs (:value ?view))
+      empty-comp
+      (rum/mount (.querySelector js/document ?parent))))
 

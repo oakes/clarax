@@ -3,7 +3,7 @@
             [clara.rules :as rules]
             [clojure.walk :as walk]))
 
-(defrecord Event [data options])
+(defrecord Event [data options timestamp])
 
 (defn jsx->clj
   [x]
@@ -17,6 +17,6 @@
     (swap! *session
       (fn [session]
         (-> session
-            (insert (->Event data opts))
+            (insert (->Event data opts (.getTime (js/Date.))))
             rules/fire-rules)))))
 
