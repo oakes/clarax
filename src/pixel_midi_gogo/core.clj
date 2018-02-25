@@ -14,23 +14,23 @@
   (->> (dsl/build-rule name body)
        (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name])))
 
-(defn transform-insert-form [[record-name & args]]
-  (list
-    'pixel-midi-gogo.core/insert
-    (list
-      (symbol (str "map->" record-name))
-      (assoc (apply hash-map args)
-        :timestamp '(.getTime (js/Date.))))))
+(defn transform-insert-form [form]
+  (if (vector? form)
+    (let [[record-name & args] form]
+      (list
+        'pixel-midi-gogo.core/insert
+        (list
+          (symbol (str "map->" record-name))
+          (assoc (apply hash-map args)
+            :timestamp '(.getTime (js/Date.))))))
+    form))
 
 (defn add-rules [rules]
   (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
   (doseq [i (range (count rules))
-          :let [{:keys [select right-side]} (get rules i)
+          :let [{:keys [select insert]} (get rules i)
                 sym (symbol (str "rule-" i))
-                {:keys [insert execute]} (into {} right-side)
-                right-side (->> (:forms insert)
-                                (map transform-insert-form)
-                                (concat (:forms execute)))]]
+                right-side (map transform-insert-form (:forms insert))]]
     (add-rule sym (concat (:forms select) ['=>]
                     (if (empty? right-side) ['(do)] right-side)))))
 
@@ -42,22 +42,16 @@
         forms))))
 
 (s/def ::select-form vector?)
-(s/def ::insert-form vector?)
-(s/def ::execute-form list?)
+(s/def ::insert-form coll?)
 (s/def ::select-block (s/cat
                         :header #{:select}
                         :forms (s/* ::select-form)))
 (s/def ::insert-block (s/cat
                         :header #{:insert}
                         :forms (s/* ::insert-form)))
-(s/def ::execute-block (s/cat
-                         :header #{:execute}
-                         :forms (s/* ::execute-form)))
 (s/def ::rule (s/cat
                 :select ::select-block
-                :right-side (s/* (s/alt
-                                   :insert ::insert-block
-                                   :execute ::execute-block))))
+                :insert ::insert-block))
 (s/def ::file (s/cat
                 :init-forms (s/* ::insert-form)
                 :rules (s/* ::rule)))
