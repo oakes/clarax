@@ -14,16 +14,20 @@
   (->> (dsl/build-rule name body)
        (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name])))
 
-(defn transform-insert-form [form]
-  (if (vector? form)
-    (let [[record-name & args] form]
+(defn transform-insert-form [[type value]]
+  (if (= type :record)
+    (let [{:keys [record args]} value]
       (list
         'pixel-midi-gogo.core/insert
         (list
-          (symbol (str "map->" record-name))
-          (update (apply hash-map args) :timestamp
+          (symbol (str "map->" record))
+          (update
+            (->> args
+                 (map (juxt :key :val))
+                 (into {}))
+            :timestamp
             #(or % '(.getTime (js/Date.)))))))
-    form))
+    value))
 
 (defn add-rules [rules]
   (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
@@ -41,8 +45,17 @@
         (recur (conj forms form))
         forms))))
 
+(s/def ::pair (s/cat
+                :key keyword?
+                :val any?))
+(s/def ::record-form (s/cat
+                       :record symbol?
+                       :args (s/* ::pair)))
+
 (s/def ::select-form vector?)
-(s/def ::insert-form coll?)
+(s/def ::insert-form (s/or
+                       :record ::record-form
+                       :execute list?))
 (s/def ::select-block (s/cat
                         :header #{:select}
                         :forms (s/* ::select-form)))
