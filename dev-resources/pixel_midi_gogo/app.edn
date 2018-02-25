@@ -1,32 +1,32 @@
-(->TodoItem "Hello, world!")
-(->Def :input-value "" (.getTime (js/Date.)))
+[TodoItem :text "Hello, world!"]
+[Def :id :input-value, :value ""]
 
 :select
 [Event [{{:keys [id]} :data, opts :options}] (= id :input) (= opts ?opts)]
 :insert
-(->Def :input-value (-> ?opts :target .-value) (.getTime (js/Date.)))
+[Def :id :input-value, :value (-> ?opts :target .-value)]
 
 :select
 [?event <- Event [{{:keys [id]} :data, opts :options}] (= id :btn) (= opts ?opts)]
 [?input <- (acc/max :timestamp :returns-fact true)
  :from [Def (= id :input-value) (< timestamp (:timestamp ?event))]]
 :insert
-(->TodoItem (:value ?input))
+[TodoItem :text (:value ?input)]
 
 :select
 [?items <- (acc/all) :from [TodoItem]]
 [?input <- (acc/max :timestamp :returns-fact true)
  :from [Def (= id :input-value)]]
 :insert
-(->View "#app"
-  [:div
-   [:input {:value (:value ?input)
-            :on-change {:id :input}}]
-   [:button {:on-click {:id :btn}}
-    "Add item"]
-   (into [:ul]
-     (for [item ?items]
-       [:li (:text item)
-        [:button {:on-click item} "Remove item"]]))]
-  (.getTime (js/Date.)))
+[View
+ :parent "#app"
+ :value [:div
+         [:input {:value (:value ?input)
+                  :on-change {:id :input}}]
+         [:button {:on-click {:id :btn}}
+          "Add item"]
+         (into [:ul]
+           (for [item ?items]
+             [:li (:text item)
+              [:button {:on-click item} "Remove item"]]))]]
 

@@ -1,6 +1,6 @@
 (ns pixel-midi-gogo.app
-  (:require [pixel-midi-gogo.core :refer [Def ->Def]]
-            [pixel-midi-gogo.view :refer [View ->View]]
+  (:require [pixel-midi-gogo.core :refer [Def map->Def]]
+            [pixel-midi-gogo.view :refer [View map->View]]
             [pixel-midi-gogo.event :refer [Event]]
             [clara.rules :as rules]
             [clara.rules.accumulators :as acc])

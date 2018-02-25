@@ -10,12 +10,17 @@
 
 (def ^:const ns-sym 'pixel-midi-gogo.core)
 
-(def default-rules
-  '[])
-
 (defn add-rule [name body]
   (->> (dsl/build-rule name body)
        (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name])))
+
+(defn transform-insert-form [[record-name & args]]
+  (list
+    'pixel-midi-gogo.core/insert
+    (list
+      (symbol (str "map->" record-name))
+      (assoc (apply hash-map args)
+        :timestamp '(.getTime (js/Date.))))))
 
 (defn add-rules [rules]
   (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
@@ -24,7 +29,7 @@
                 sym (symbol (str "rule-" i))
                 {:keys [insert execute]} (into {} right-side)
                 right-side (->> (:forms insert)
-                                (map #(list 'pixel-midi-gogo.core/insert %))
+                                (map transform-insert-form)
                                 (concat (:forms execute)))]]
     (add-rule sym (concat (:forms select) ['=>]
                     (if (empty? right-side) ['(do)] right-side)))))
@@ -36,33 +41,33 @@
         (recur (conj forms form))
         forms))))
 
-(s/def ::callable-form list?)
-(s/def ::query-form vector?)
+(s/def ::select-form vector?)
+(s/def ::insert-form vector?)
+(s/def ::execute-form list?)
 (s/def ::select-block (s/cat
                         :header #{:select}
-                        :forms (s/* ::query-form)))
+                        :forms (s/* ::select-form)))
 (s/def ::insert-block (s/cat
                         :header #{:insert}
-                        :forms (s/* ::callable-form)))
+                        :forms (s/* ::insert-form)))
 (s/def ::execute-block (s/cat
                          :header #{:execute}
-                         :forms (s/* ::callable-form)))
+                         :forms (s/* ::execute-form)))
 (s/def ::rule (s/cat
                 :select ::select-block
                 :right-side (s/* (s/alt
                                    :insert ::insert-block
                                    :execute ::execute-block))))
 (s/def ::file (s/cat
-                :init-forms (s/* ::callable-form)
+                :init-forms (s/* ::insert-form)
                 :rules (s/* ::rule)))
 
 (defmacro init [nses files]
-  (let [parsed-files (mapv #(s/conform ::file
-                              (-> % read-file (concat default-rules)))
+  (let [parsed-files (mapv #(s/conform ::file (read-file %))
                        files)
         init-forms (->> parsed-files
                         (mapcat :init-forms)
-                        (mapv #(list 'pixel-midi-gogo.core/insert %)))
+                        (mapv transform-insert-form))
         rules (->> parsed-files
                    (mapcat :rules)
                    vec)
