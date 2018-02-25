@@ -21,8 +21,8 @@
         'pixel-midi-gogo.core/insert
         (list
           (symbol (str "map->" record-name))
-          (assoc (apply hash-map args)
-            :timestamp '(.getTime (js/Date.))))))
+          (update (apply hash-map args) :timestamp
+            #(or % '(.getTime (js/Date.)))))))
     form))
 
 (defn add-rules [rules]
