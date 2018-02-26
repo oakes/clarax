@@ -12,6 +12,7 @@
  :id :input-value]
 :insert
 [TodoItem :text (:value ?input)]
+[Def :id :input-value, :value ""]
 
 :select
 [?items <<- TodoItem]
