@@ -2,8 +2,7 @@
   (:require [pixel-midi-gogo.core :refer [Def map->Def]]
             [pixel-midi-gogo.view :refer [View map->View]]
             [pixel-midi-gogo.event :refer [Event]]
-            [clara.rules :as rules]
-            [clara.rules.accumulators :as acc])
+            [clara.rules :as rules])
   (:require-macros [pixel-midi-gogo.core :as pmg]))
 
 (defrecord TodoItem [text])

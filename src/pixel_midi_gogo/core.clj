@@ -33,10 +33,12 @@
                      (map (fn [{:keys [key val]}]
                             (list '= (symbol (name key)) val))
                        args)))]
-    (if-let [{:keys [symbol arrow accumulator]} binding]
-      (if accumulator
-        [symbol arrow accumulator :from query]
-        (into [symbol arrow] query))
+    (if-let [{:keys [symbol arrow]} binding]
+      (case arrow
+        <<- [symbol '<- '(clara.rules.accumulators/all)
+             :from query]
+        <- [symbol '<- '(clara.rules.accumulators/max :timestamp :returns-fact true)
+            :from query])
       query)))
 
 (defn add-rules [rules]
@@ -62,8 +64,7 @@
 
 (s/def ::binding (s/cat
                    :symbol symbol?
-                   :arrow #{'<-}
-                   :accumulator (s/? list?)))
+                   :arrow '#{<- <<-}))
 (s/def ::pair (s/cat
                 :key keyword?
                 :val any?))

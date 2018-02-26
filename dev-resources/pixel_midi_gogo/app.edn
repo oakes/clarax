@@ -8,15 +8,14 @@
 
 :select
 [?event <- Event (= (:id data) :btn), :options ?opts]
-[?input <- (acc/max :timestamp :returns-fact true)
- Def (< timestamp (:timestamp ?event))
+[?input <- Def (< timestamp (:timestamp ?event))
  :id :input-value]
 :insert
 [TodoItem :text (:value ?input)]
 
 :select
-[?items <- (acc/all) TodoItem]
-[?input <- (acc/max :timestamp :returns-fact true) Def :id :input-value]
+[?items <<- TodoItem]
+[?input <- Def :id :input-value]
 :insert
 [View
  :parent "#app"
