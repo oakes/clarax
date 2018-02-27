@@ -7,12 +7,16 @@
 [Def :id :input-value, :value (-> ?opts :target .-value)]
 
 :select
-[?event <- Event (= (:id data) :btn), :options ?opts]
-[?input <- Def (< timestamp (:timestamp ?event))
- :id :input-value]
+[?event <- Event (= (:id data) :add-btn) :timestamp ?event-time]
+[?input <- Def (< timestamp ?event-time) :id :input-value]
 :insert
 [TodoItem :text (:value ?input)]
 [Def :id :input-value, :value ""]
+
+:select
+[?event <- Event (= (:id data) :rem-btn)]
+:insert
+[Delete :record (:record (:data ?event))]
 
 :select
 [?items <<- TodoItem]
@@ -23,10 +27,12 @@
  :value [:div
          [:input {:value (:value ?input)
                   :on-change {:id :input}}]
-         [:button {:on-click {:id :btn}}
+         [:button {:on-click {:id :add-btn}}
           "Add item"]
          (into [:ul]
            (for [item ?items]
              [:li (:text item)
-              [:button {:on-click item} "Remove item"]]))]]
+              [:button {:on-click {:id :rem-btn
+                                   :record item}}
+               "Remove item"]]))]]
 

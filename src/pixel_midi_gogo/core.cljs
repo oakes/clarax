@@ -6,13 +6,24 @@
 
 (defrecord Def [id value timestamp])
 
+(defrecord Delete [record])
+
 (defn insert
   ([fact]
-   (rules/insert! fact)
-   (when (and (instance? Def fact)
-              (record? (:value fact)))
-     (rules/insert! (:value fact))))
+   (if (instance? Delete fact)
+     (let [fact (:record fact)]
+       (rules/retract! fact)
+       (when (and (instance? Def fact)
+                  (record? (:value fact)))
+         (rules/retract! (:value fact))))
+     (do
+       (rules/insert! fact)
+       (when (and (instance? Def fact)
+                  (record? (:value fact)))
+         (rules/insert! (:value fact))))))
   ([session fact]
+   (when (instance? Delete fact)
+     (throw (js/Error. "Can't delete here.")))
    (cond-> session
            true
            (rules/insert fact)

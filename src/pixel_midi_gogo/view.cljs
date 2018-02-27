@@ -30,7 +30,7 @@
   [?view <- (acc/max :timestamp :returns-fact true)
    :from [View (= ?parent parent)]]
   =>
-  (-> (walk/postwalk update-attrs (:value ?view))
+  (-> (walk/prewalk update-attrs (:value ?view))
       empty-comp
       (rum/mount (.querySelector js/document ?parent))))
 
