@@ -31,6 +31,18 @@
                 (record? (:value fact)))
            (rules/insert (:value fact)))))
 
+(defn delete
+  [facts]
+  (let [facts (sort-by #(-> % meta :timestamp) facts)
+        current-fact (last facts)
+        old-facts (butlast facts)]
+    (doseq [{:keys [value] :as fact} old-facts]
+      (rules/retract! fact)
+      (when (and (record? value)
+                 (not= value (:value current-fact)))
+        (rules/retract! value)))
+    current-fact))
+
 (defn watch-files [files]
   (when-not js/COMPILED
     (.send XhrIo
