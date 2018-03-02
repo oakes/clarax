@@ -27,7 +27,8 @@
  :value [:div
          [:input {:value (:value ?input)
                   :on-change {:id :input}}]
-         [:button {:on-click {:id :add-btn}}
+         [:button {:on-click {:id :add-btn}
+                   :disabled (empty? (:value ?input))}
           "Add item"]
          (into [:ul]
            (for [item ?items]
