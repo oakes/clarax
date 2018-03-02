@@ -2,19 +2,19 @@
 [Def :id :input-value, :value ""]
 
 :select
-[Event (= (:id data) :input), :options ?opts]
+[Event :data (-> :id (= :input)), :options ?opts]
 :insert
 [Def :id :input-value, :value (-> ?opts :target .-value)]
 
 :select
-[Event (= (:id data) :add-btn) :timestamp ?event-time]
-[?input <- Def (< timestamp ?event-time) :id :input-value]
+[Event :data (-> :id (= :add-btn)), :timestamp ?event-time]
+[?input <- Def :id :input-value, :timestamp (< ?event-time)]
 :insert
 [TodoItem :text (:value ?input)]
 [Def :id :input-value, :value ""]
 
 :select
-[?event <- Event (= (:id data) :rem-btn)]
+[?event <- Event :data (-> :id (= :rem-btn))]
 :insert
 [Delete :record (:record (:data ?event))]
 

@@ -34,12 +34,14 @@
         :timestamp
         #(or % '(.getTime (js/Date.)))))))
 
-(defn transform-select-form [{:keys [binding record expressions args]}]
-  (let [query (vec (concat
-                     [record]
-                     expressions
+(defn transform-select-form [{:keys [binding record args]}]
+  (let [query (vec (cons
+                     record
                      (map (fn [{:keys [key val]}]
-                            (list '= (symbol (name key)) val))
+                            (let [key (symbol (name key))]
+                              (if (list? val)
+                                (list '-> key val)
+                                (list '= key val))))
                        args)))]
     (if-let [{:keys [symbol arrow]} binding]
       (case arrow
@@ -80,7 +82,6 @@
 (s/def ::select-form (s/cat
                        :binding (s/? ::binding)
                        :record symbol?
-                       :expressions (s/* list?)
                        :args (s/* ::pair)))
 (s/def ::insert-form (s/cat
                        :record symbol?
