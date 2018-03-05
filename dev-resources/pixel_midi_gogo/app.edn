@@ -4,42 +4,42 @@
 [Def :id :edit-record, :value nil]
 
 :select
-[Event :data (-> :id (= :input)), :options ?opts]
+[Event :data (= (:id %) :input), :options ?opts]
 :insert
 [Def :id :input-value, :value (-> ?opts :target .-value)]
 
 :select
-[Event :data (-> :id (= :add-btn)), :timestamp ?event-time]
-[?input <- Def :id :input-value, :timestamp (< ?event-time)]
+[Event :data (= (:id %) :add-btn), :timestamp ?event-time]
+[?input <- Def :id :input-value, :timestamp (< % ?event-time)]
 :insert
 [TodoItem :text (:value ?input)]
 [Def :id :input-value, :value ""]
 
 :select
-[?event <- Event :data (-> :id (= :rem-btn))]
+[?event <- Event :data (= (:id %) :rem-btn)]
 :insert
 [Delete :record (:record (:data ?event))]
 
 :select
-[?event <- Event :data (-> :id (= :edit-btn))]
+[?event <- Event :data (= (:id %) :edit-btn)]
 :insert
 [Def :id :edit-value, :value ""]
 [Def :id :edit-record, :value (:record (:data ?event))]
 
 :select
-[?event <- Event :data (-> :id (= :cancel-btn))]
+[?event <- Event :data (= (:id %) :cancel-btn)]
 :insert
 [Def :id :edit-value, :value ""]
 [Def :id :edit-record, :value nil]
 
 :select
-[Event :data (-> :id (= :edit)), :options ?opts]
+[Event :data (= (:id %) :edit), :options ?opts]
 :insert
 [Def :id :edit-value, :value (-> ?opts :target .-value)]
 
 :select
-[?event <- Event :data (-> :id (= :save-btn)), :timestamp ?event-time]
-[?edit <- Def :id :edit-value, :timestamp (< ?event-time)]
+[?event <- Event :data (= (:id %) :save-btn), :timestamp ?event-time]
+[?edit <- Def :id :edit-value, :timestamp (< % ?event-time)]
 :insert
 [Update :record (:record (:data ?event)) :text (:value ?edit)]
 [Def :id :edit-record, :value nil]

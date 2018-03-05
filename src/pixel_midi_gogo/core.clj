@@ -6,7 +6,8 @@
             [clojure.java.io :as io]
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]
-            [clojure.spec.alpha :as s]))
+            [clojure.spec.alpha :as s]
+            [clojure.walk :as walk]))
 
 (def ^:const ns-sym 'pixel-midi-gogo.core)
 
@@ -40,7 +41,7 @@
                      (map (fn [{:keys [key val]}]
                             (let [key (symbol (name key))]
                               (if (list? val)
-                                (list '-> key val)
+                                (walk/prewalk-replace {'% key} val)
                                 (list '= key val))))
                        args)))]
     (if-let [{:keys [symbol arrow]} binding]
