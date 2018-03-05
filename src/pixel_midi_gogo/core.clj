@@ -35,6 +35,17 @@
         :timestamp
         #(or % '(.getTime (js/Date.)))))))
 
+(defn transform-delete-form [form]
+  (list 'pixel-midi-gogo.core/delete form))
+
+(defn transform-update-form [{:keys [record args]}]
+  (list
+    'pixel-midi-gogo.core/edit
+    record
+    (->> args
+         (map (juxt :key :val))
+         (into {}))))
+
 (defn transform-select-form [{:keys [binding record args]}]
   (let [query (vec (cons
                      record
@@ -55,14 +66,17 @@
 (defn add-rules [rules]
   (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
   (doseq [i (range (count rules))
-          :let [{:keys [select insert]} (get rules i)
+          :let [{:keys [left right]} (get rules i)
                 sym (symbol (str "rule-" i))
-                left-side (mapv transform-select-form (:forms select))
-                right-side (map (fn [[type value]]
-                                  (if (= type :insert)
-                                    (transform-insert-form value)
-                                    value))
-                             (:forms insert))]]
+                left-side (mapv transform-select-form (:forms left))
+                right-side (mapcat
+                             (fn [[type block]]
+                               (case type
+                                 :insert (map transform-insert-form (:forms block))
+                                 :delete (map transform-delete-form (:forms block))
+                                 :update (map transform-update-form (:forms block))
+                                 :execute (:forms block)))
+                             right)]]
     (add-rule sym (concat left-side ['=>]
                     (if (empty? right-side) ['(do)] right-side)))))
 
@@ -87,19 +101,35 @@
 (s/def ::insert-form (s/cat
                        :record symbol?
                        :args (s/* ::pair)))
+(s/def ::delete-form #(not (keyword? %)))
+(s/def ::update-form (s/cat
+                       :record any?
+                       :args (s/* ::pair)))
+(s/def ::execute-form list?)
 
 (s/def ::select-block (s/cat
                         :header #{:select}
                         :forms (s/+ (s/spec ::select-form))))
 (s/def ::insert-block (s/cat
                         :header #{:insert}
-                        :forms (s/+ (s/spec (s/or
-                                              :execute list?
-                                              :insert ::insert-form)))))
+                        :forms (s/+ (s/spec ::insert-form))))
+(s/def ::delete-block (s/cat
+                        :header #{:delete}
+                        :forms (s/+ (s/spec ::delete-form))))
+(s/def ::update-block (s/cat
+                        :header #{:update}
+                        :forms (s/+ (s/spec ::update-form))))
+(s/def ::execute-block (s/cat
+                         :header #{:execute}
+                         :forms (s/+ (s/spec ::execute-form))))
 
 (s/def ::rule (s/cat
-                :select ::select-block
-                :insert (s/? ::insert-block)))
+                :left ::select-block
+                :right (s/* (s/alt
+                              :insert ::insert-block
+                              :delete ::delete-block
+                              :update ::update-block
+                              :execute ::execute-block))))
 (s/def ::file (s/cat
                 :init-forms (s/* (s/spec ::insert-form))
                 :rules (s/* ::rule)))
