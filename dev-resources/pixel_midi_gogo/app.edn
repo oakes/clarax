@@ -23,7 +23,7 @@
 :select
 [?event <- Event :data (= (:id %) :edit-btn)]
 :insert
-[Def :id :edit-value, :value ""]
+[Def :id :edit-value, :value (:text (:record (:data ?event)))]
 [Def :id :edit-record, :value (:record (:data ?event))]
 
 :select
