@@ -14,9 +14,9 @@
   '[]
   #_
   '[:select
-    [?facts <<- pixel-midi-gogo.core/Def (some? id)]
+    [?facts <<- pixel-midi-gogo.core/Def :id ?id]
     :insert
-    (pixel-midi-gogo.core/delete ?facts)])
+    (pixel-midi-gogo.core/delete-defs ?facts)])
 
 (defn add-rule [name body]
   (->> (dsl/build-rule name body)
@@ -45,7 +45,7 @@
                        args)))]
     (if-let [{:keys [symbol arrow]} binding]
       (case arrow
-        <<- [symbol '<- '(clara.rules.accumulators/all)
+        <<- [symbol '<- '(clara.rules.accumulators/distinct)
              :from query]
         <- [symbol '<- '(clara.rules.accumulators/max :timestamp :returns-fact true)
             :from query])

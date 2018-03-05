@@ -1,5 +1,7 @@
 [TodoItem :text "Hello, world!"]
 [Def :id :input-value, :value ""]
+[Def :id :edit-value, :value ""]
+[Def :id :edit-record, :value nil]
 
 :select
 [Event :data (-> :id (= :input)), :options ?opts]
@@ -19,8 +21,34 @@
 [Delete :record (:record (:data ?event))]
 
 :select
+[?event <- Event :data (-> :id (= :edit-btn))]
+:insert
+[Def :id :edit-value, :value ""]
+[Def :id :edit-record, :value (:record (:data ?event))]
+
+:select
+[?event <- Event :data (-> :id (= :cancel-btn))]
+:insert
+[Def :id :edit-value, :value ""]
+[Def :id :edit-record, :value nil]
+
+:select
+[Event :data (-> :id (= :edit)), :options ?opts]
+:insert
+[Def :id :edit-value, :value (-> ?opts :target .-value)]
+
+:select
+[?event <- Event :data (-> :id (= :save-btn)), :timestamp ?event-time]
+[?edit <- Def :id :edit-value, :timestamp (< ?event-time)]
+:insert
+[Update :record (:record (:data ?event)) :text (:value ?edit)]
+[Def :id :edit-record, :value nil]
+
+:select
 [?items <<- TodoItem]
 [?input <- Def :id :input-value]
+[?edit <- Def :id :edit-value]
+[?edit-record <- Def :id :edit-record]
 :insert
 [View
  :parent "#app"
@@ -31,9 +59,23 @@
                    :disabled (empty? (:value ?input))}
           "Add item"]
          (into [:ul]
-           (for [item ?items]
-             [:li (:text item)
-              [:button {:on-click {:id :rem-btn
-                                   :record item}}
-               "Remove item"]]))]]
+           (for [item (sort-by :timestamp ?items)]
+             [:li
+              (if (= (:value ?edit-record) item)
+                [:div
+                 [:input {:value (:value ?edit)
+                          :on-change {:id :edit}}]
+                 [:button {:on-click {:id :cancel-btn}}
+                  "Cancel"]
+                 [:button {:on-click {:id :save-btn
+                                      :record item}}
+                  "Save"]]
+                [:div
+                 (:text item)
+                 [:button {:on-click {:id :edit-btn
+                                      :record item}}
+                  "Edit"]
+                 [:button {:on-click {:id :rem-btn
+                                      :record item}}
+                  "Remove"]])]))]]
 

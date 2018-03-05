@@ -6,21 +6,29 @@
 
 (defrecord Def [id value timestamp])
 
-(defrecord Delete [record])
+(defrecord Delete [record timestamp])
+
+(defrecord Update [record timestamp])
 
 (defn insert
   ([fact]
-   (if (instance? Delete fact)
-     (let [fact (:record fact)]
-       (rules/retract! fact)
-       (when (and (instance? Def fact)
-                  (record? (:value fact)))
-         (rules/retract! (:value fact))))
+   (rules/insert! fact)
+   (cond
+     (and (instance? Def fact)
+          (record? (:value fact)))
+     (rules/insert! (:value fact))
+     
+     (instance? Delete fact)
      (do
-       (rules/insert! fact)
-       (when (and (instance? Def fact)
-                  (record? (:value fact)))
-         (rules/insert! (:value fact))))))
+       (rules/retract! (:record fact))
+       (rules/retract! (:record fact)))
+     
+     (instance? Update fact)
+     (do
+       (rules/retract! (:record fact))
+       (rules/retract! (:record fact))
+       (rules/insert! (merge (:record fact)
+                        (dissoc fact :record :timestamp))))))
   ([session fact]
    (when (instance? Delete fact)
      (throw (js/Error. "Can't delete here.")))
@@ -31,7 +39,7 @@
                 (record? (:value fact)))
            (rules/insert (:value fact)))))
 
-(defn delete
+(defn delete-defs
   [facts]
   (let [facts (sort-by #(-> % meta :timestamp) facts)
         current-fact (last facts)
