@@ -4,21 +4,11 @@
 
 (def *session (atom nil))
 
-(defrecord Def [id value timestamp])
-
 (defn insert
   ([fact]
-   (rules/insert! fact)
-   (when (and (instance? Def fact)
-              (record? (:value fact)))
-     (rules/insert! (:value fact))))
+   (rules/insert! fact))
   ([session fact]
-   (cond-> session
-           true
-           (rules/insert fact)
-           (and (instance? Def fact)
-                (record? (:value fact)))
-           (rules/insert (:value fact)))))
+   (rules/insert session fact)))
 
 (defn delete [fact]
   (rules/retract! fact)

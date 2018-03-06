@@ -1,19 +1,18 @@
 [TodoItem :text "Hello, world!"]
-[Def :id :input-value, :value ""]
-[Def :id :edit-value, :value ""]
-[Def :id :edit-record, :value nil]
+[NewTodo :text ""]
+[EditTodo :text "" :record nil]
 
 :select
 [Event :data (= (:id %) :input), :options ?opts]
 :insert
-[Def :id :input-value, :value (-> ?opts :target .-value)]
+[NewTodo :text (-> ?opts :target .-value)]
 
 :select
 [Event :data (= (:id %) :add-btn), :timestamp ?event-time]
-[?input <- Def :id :input-value, :timestamp (< % ?event-time)]
+[?input <- NewTodo :timestamp (< % ?event-time)]
 :insert
-[TodoItem :text (:value ?input)]
-[Def :id :input-value, :value ""]
+[TodoItem :text (:text ?input)]
+[NewTodo :text ""]
 
 :select
 [?event <- Event :data (= (:id %) :rem-btn)]
@@ -23,49 +22,51 @@
 :select
 [?event <- Event :data (= (:id %) :edit-btn)]
 :insert
-[Def :id :edit-value, :value (:text (:record (:data ?event)))]
-[Def :id :edit-record, :value (:record (:data ?event))]
+[EditTodo
+ :text (:text (:record (:data ?event))),
+ :record (:record (:data ?event))]
 
 :select
 [?event <- Event :data (= (:id %) :cancel-btn)]
 :insert
-[Def :id :edit-value, :value ""]
-[Def :id :edit-record, :value nil]
+[EditTodo :text "", :record nil]
 
 :select
-[Event :data (= (:id %) :edit), :options ?opts]
+[?event <- Event :data (= (:id %) :edit), :options ?opts]
 :insert
-[Def :id :edit-value, :value (-> ?opts :target .-value)]
+[EditTodo
+ :text (-> ?opts :target .-value),
+ :record (:record (:data ?event))]
 
 :select
 [?event <- Event :data (= (:id %) :save-btn), :timestamp ?event-time]
-[?edit <- Def :id :edit-value, :timestamp (< % ?event-time)]
+[?edit <- EditTodo :timestamp (< % ?event-time)]
 :insert
-[Def :id :edit-record, :value nil]
+[EditTodo :text "", :record nil]
 :update
-[(:record (:data ?event)) :text (:value ?edit)]
+[(:record (:data ?event)) :text (:text ?edit)]
 
 :select
 [?items <<- TodoItem]
-[?input <- Def :id :input-value]
-[?edit <- Def :id :edit-value]
-[?edit-record <- Def :id :edit-record]
+[?input <- NewTodo]
+[?edit <- EditTodo]
 :insert
 [View
  :parent "#app"
  :value [:div
-         [:input {:value (:value ?input)
+         [:input {:value (:text ?input)
                   :on-change {:id :input}}]
          [:button {:on-click {:id :add-btn}
-                   :disabled (empty? (:value ?input))}
+                   :disabled (empty? (:text ?input))}
           "Add item"]
          (into [:ul]
            (for [item (sort-by :timestamp ?items)]
              [:li
-              (if (= (:value ?edit-record) item)
+              (if (= (:record ?edit) item)
                 [:div
-                 [:input {:value (:value ?edit)
-                          :on-change {:id :edit}}]
+                 [:input {:value (:text ?edit)
+                          :on-change {:id :edit
+                                      :record item}}]
                  [:button {:on-click {:id :cancel-btn}}
                   "Cancel"]
                  [:button {:on-click {:id :save-btn

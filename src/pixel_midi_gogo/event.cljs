@@ -1,5 +1,5 @@
 (ns pixel-midi-gogo.event
-  (:require [pixel-midi-gogo.core :refer [insert *session ->Def]]
+  (:require [pixel-midi-gogo.core :refer [insert *session]]
             [clara.rules :as rules]
             [clojure.walk :as walk]))
 
