@@ -11,11 +11,9 @@
    (rules/insert session fact)))
 
 (defn delete [fact]
-  (rules/retract! fact)
   (rules/retract! fact))
 
 (defn edit [fact new-args]
-  (rules/retract! fact)
   (rules/retract! fact)
   (rules/insert! (merge fact new-args)))
 
