@@ -11,14 +11,6 @@
 
 (def ^:const ns-sym 'pixel-midi-gogo.core)
 
-(def default-rules
-  '[]
-  #_
-  '[:select
-    [?facts <<- pixel-midi-gogo.core/Def :id ?id]
-    :insert
-    (pixel-midi-gogo.core/delete-defs ?facts)])
-
 (defn add-rule [name body]
   (->> (dsl/build-rule name body)
        (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name])))
@@ -135,9 +127,7 @@
                 :rules (s/* ::rule)))
 
 (defmacro init [nses files]
-  (let [parsed-files (mapv #(s/conform ::file
-                              (-> % read-file (concat default-rules)))
-                       files)
+  (let [parsed-files (mapv #(s/conform ::file (read-file %)) files)
         init-forms (->> parsed-files
                         (mapcat :init-forms)
                         (mapv transform-insert-form))
