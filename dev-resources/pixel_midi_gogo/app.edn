@@ -4,15 +4,17 @@
 
 :select
 [Event :data (= (:id %) :input), :options ?opts]
-:insert
-[NewTodo :text (-> ?opts :target .-value)]
+[?input <== NewTodo]
+:update
+[?input :text (-> ?opts :target .-value)]
 
 :select
-[Event :data (= (:id %) :add-btn), :timestamp ?event-time]
-[?input <- NewTodo :timestamp (< % ?event-time)]
+[Event :data (= (:id %) :add-btn)]
+[?input <== NewTodo]
 :insert
 [TodoItem :text (:text ?input)]
-[NewTodo :text ""]
+:update
+[?input :text ""]
 
 :select
 [?event <- Event :data (= (:id %) :rem-btn)]

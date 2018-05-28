@@ -7,13 +7,20 @@
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]
             [clojure.spec.alpha :as s]
+            [clojure.string :as str]
             [clojure.walk :as walk]))
 
 (def ^:const ns-sym 'pixel-midi-gogo.core)
 
 (defn add-rule [name body]
-  (->> (dsl/build-rule name body)
-       (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name])))
+  (let [rule (dsl/build-rule name body)]
+    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] rule)
+    rule))
+
+(defn add-query [name body]
+  (let [query (dsl/build-query name body)]
+    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] query)
+    query))
 
 (defn transform-insert-form [{:keys [record args]}]
   (list
@@ -52,15 +59,40 @@
         <<- [symbol '<- '(clara.rules.accumulators/distinct)
              :from query]
         <- [symbol '<- '(clara.rules.accumulators/max :timestamp :returns-fact true)
-            :from query])
+            :from query]
+        nil)
       query)))
+
+(defn transform-assign-form [rule-sym {:keys [binding record arrows]}]
+  (list
+    (:symbol binding)
+    (list
+      (list 'comp :?ret 'first)
+      (list
+        'some->
+        '(deref pixel-midi-gogo.core/*session)
+        (list
+          'clara.rules/query
+          (add-query
+            (->> record name str/lower-case (format (str rule-sym "-%s-query")) symbol)
+            (list [] ['?ret '<-
+                      (case (:arrow binding)
+                        <<= '(clara.rules.accumulators/distinct)
+                        <== '(clara.rules.accumulators/max :timestamp :returns-fact true))
+                      :from [record]])))))))
 
 (defn add-rules [rules]
   (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
   (doseq [i (range (count rules))
           :let [{:keys [left right]} (get rules i)
                 sym (symbol (str "rule-" i))
-                left-side (mapv transform-select-form (:forms left))
+                selects (keep (fn [[type block]]
+                                (when (= type :select) block))
+                          (:forms left))
+                assigns (keep (fn [[type block]]
+                                (when (= type :assign) block))
+                          (:forms left))
+                left-side (mapv transform-select-form selects)
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
@@ -70,7 +102,17 @@
                                  :execute (:forms block)))
                              right)]]
     (add-rule sym (concat left-side ['=>]
-                    (if (empty? right-side) ['(do)] right-side)))))
+                    (cond
+                      (empty? right-side)
+                      ['(do)]
+                      (seq assigns)
+                      (list
+                        (concat
+                          (list 'let
+                            (vec (mapcat (partial transform-assign-form sym) assigns)))
+                          right-side))
+                      :else
+                      right-side)))))
 
 (defn read-file [filename]
   (let [reader (indexing-push-back-reader (slurp (io/reader filename)))]
@@ -79,17 +121,23 @@
         (recur (conj forms form))
         forms))))
 
-(s/def ::binding (s/cat
-                   :symbol symbol?
-                   :arrow '#{<- <<-}))
+(s/def ::select-binding (s/cat
+                          :symbol symbol?
+                          :arrow '#{<- <<-}))
+(s/def ::assign-binding (s/cat
+                          :symbol symbol?
+                          :arrow '#{<== <<=}))
 (s/def ::pair (s/cat
                 :key keyword?
                 :val any?))
 
 (s/def ::select-form (s/cat
-                       :binding (s/? ::binding)
+                       :binding (s/? ::select-binding)
                        :record symbol?
                        :args (s/* ::pair)))
+(s/def ::assign-form (s/cat
+                       :binding ::assign-binding
+                       :record symbol?))
 (s/def ::insert-form (s/cat
                        :record symbol?
                        :args (s/* ::pair)))
@@ -101,7 +149,9 @@
 
 (s/def ::select-block (s/cat
                         :header #{:select}
-                        :forms (s/+ (s/spec ::select-form))))
+                        :forms (s/+ (s/or
+                                      :assign ::assign-form
+                                      :select ::select-form))))
 (s/def ::insert-block (s/cat
                         :header #{:insert}
                         :forms (s/+ (s/spec ::insert-form))))
