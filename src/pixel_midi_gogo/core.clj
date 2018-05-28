@@ -58,8 +58,7 @@
       (case arrow
         <<- [symbol '<- '(clara.rules.accumulators/distinct)
              :from query]
-        <- [symbol '<- '(clara.rules.accumulators/max :timestamp :returns-fact true)
-            :from query]
+        <- (vec (concat [symbol '<-] query))
         nil)
       query)))
 

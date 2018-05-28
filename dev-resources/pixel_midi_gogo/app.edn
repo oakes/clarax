@@ -23,29 +23,31 @@
 
 :select
 [?event <- Event :data (= (:id %) :edit-btn)]
-:insert
-[EditTodo
+[?edit <== EditTodo]
+:update
+[?edit
  :text (:text (:record (:data ?event))),
  :record (:record (:data ?event))]
 
 :select
 [?event <- Event :data (= (:id %) :cancel-btn)]
-:insert
-[EditTodo :text "", :record nil]
+[?edit <== EditTodo]
+:update
+[?edit :text "", :record nil]
 
 :select
 [?event <- Event :data (= (:id %) :edit), :options ?opts]
-:insert
-[EditTodo
+[?edit <== EditTodo]
+:update
+[?edit
  :text (-> ?opts :target .-value),
  :record (:record (:data ?event))]
 
 :select
-[?event <- Event :data (= (:id %) :save-btn), :timestamp ?event-time]
-[?edit <- EditTodo :timestamp (< % ?event-time)]
-:insert
-[EditTodo :text "", :record nil]
+[?event <- Event :data (= (:id %) :save-btn)]
+[?edit <== EditTodo]
 :update
+[?edit :text "", :record nil]
 [(:record (:data ?event)) :text (:text ?edit)]
 
 :select
