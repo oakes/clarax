@@ -2,55 +2,61 @@
 [NewTodo :text ""]
 [EditTodo :text "" :record nil]
 
-:select
+:when
 [Event :data (= (:id %) :input), :options ?opts]
-[?input <== NewTodo]
+:select
+[?input <- NewTodo]
 :update
 [?input :text (-> ?opts :target .-value)]
 
-:select
+:when
 [Event :data (= (:id %) :add-btn)]
-[?input <== NewTodo]
+:select
+[?input <- NewTodo]
 :insert
 [TodoItem :text (:text ?input)]
 :update
 [?input :text ""]
 
-:select
+:when
 [?event <- Event :data (= (:id %) :rem-btn)]
 :delete
 (:record (:data ?event))
 
-:select
+:when
 [?event <- Event :data (= (:id %) :edit-btn)]
-[?edit <== EditTodo]
+:select
+[?edit <- EditTodo]
 :update
 [?edit
- :text (:text (:record (:data ?event))),
+ :text (:text (:record (:data ?event)))
  :record (:record (:data ?event))]
 
-:select
+:when
 [?event <- Event :data (= (:id %) :cancel-btn)]
-[?edit <== EditTodo]
+:select
+[?edit <- EditTodo]
 :update
 [?edit :text "", :record nil]
 
-:select
+:when
 [?event <- Event :data (= (:id %) :edit), :options ?opts]
-[?edit <== EditTodo]
+:select
+[?edit <- EditTodo]
 :update
 [?edit
- :text (-> ?opts :target .-value),
+ :text (-> ?opts :target .-value)
  :record (:record (:data ?event))]
 
-:select
+:when
 [?event <- Event :data (= (:id %) :save-btn)]
-[?edit <== EditTodo]
+:select
+[?edit <- EditTodo]
 :update
 [?edit :text "", :record nil]
 [(:record (:data ?event)) :text (:text ?edit)]
 
-:select
+:when
 [?items <<- TodoItem]
 [?input <- NewTodo]
 [?edit <- EditTodo]

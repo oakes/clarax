@@ -45,7 +45,7 @@
          (map (juxt :key :val))
          (into {}))))
 
-(defn transform-select-form [{:keys [binding record args]}]
+(defn transform-when-form [{:keys [binding record args]}]
   (let [query (vec (cons
                      record
                      (map (fn [{:keys [key val]}]
@@ -62,7 +62,7 @@
         nil)
       query)))
 
-(defn transform-assign-form [rule-sym {:keys [binding record arrows]}]
+(defn transform-select-form [rule-sym {:keys [binding record]}]
   (list
     (:symbol binding)
     (list
@@ -76,8 +76,8 @@
             (->> record name str/lower-case (format (str rule-sym "-%s-query")) symbol)
             (list [] ['?ret '<-
                       (case (:arrow binding)
-                        <<= '(clara.rules.accumulators/distinct)
-                        <== '(clara.rules.accumulators/max :timestamp :returns-fact true))
+                        <<- '(clara.rules.accumulators/distinct)
+                        <- '(clara.rules.accumulators/max :timestamp :returns-fact true))
                       :from [record]])))))))
 
 (defn add-rules [rules]
@@ -85,16 +85,15 @@
   (doseq [i (range (count rules))
           :let [{:keys [left right]} (get rules i)
                 sym (symbol (str "rule-" i))
-                selects (keep (fn [[type block]]
-                                (when (= type :select) block))
-                          (:forms left))
-                assigns (keep (fn [[type block]]
-                                (when (= type :assign) block))
-                          (:forms left))
-                left-side (mapv transform-select-form selects)
+                left-side (mapv transform-when-form (:forms left))
+                selects (->> right
+                             (keep (fn [[type block]]
+                                     (when (= type :select) block)))
+                             (mapcat :forms))
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
+                                 :select []
                                  :insert (map transform-insert-form (:forms block))
                                  :delete (map transform-delete-form (:forms block))
                                  :update (map transform-update-form (:forms block))
@@ -104,11 +103,11 @@
                     (cond
                       (empty? right-side)
                       ['(do)]
-                      (seq assigns)
+                      (seq selects)
                       (list
                         (concat
                           (list 'let
-                            (vec (mapcat (partial transform-assign-form sym) assigns)))
+                            (vec (mapcat (partial transform-select-form sym) selects)))
                           right-side))
                       :else
                       right-side)))))
@@ -120,22 +119,19 @@
         (recur (conj forms form))
         forms))))
 
-(s/def ::select-binding (s/cat
-                          :symbol symbol?
-                          :arrow '#{<- <<-}))
-(s/def ::assign-binding (s/cat
-                          :symbol symbol?
-                          :arrow '#{<== <<=}))
+(s/def ::binding (s/cat
+                   :symbol symbol?
+                   :arrow '#{<- <<-}))
 (s/def ::pair (s/cat
                 :key keyword?
                 :val any?))
 
+(s/def ::when-form (s/cat
+                     :binding (s/? ::binding)
+                     :record symbol?
+                     :args (s/* ::pair)))
 (s/def ::select-form (s/cat
-                       :binding (s/? ::select-binding)
-                       :record symbol?
-                       :args (s/* ::pair)))
-(s/def ::assign-form (s/cat
-                       :binding ::assign-binding
+                       :binding ::binding
                        :record symbol?))
 (s/def ::insert-form (s/cat
                        :record symbol?
@@ -146,11 +142,12 @@
                        :args (s/* ::pair)))
 (s/def ::execute-form list?)
 
+(s/def ::when-block (s/cat
+                      :header #{:when}
+                      :forms (s/+ (s/spec ::when-form))))
 (s/def ::select-block (s/cat
                         :header #{:select}
-                        :forms (s/+ (s/or
-                                      :assign ::assign-form
-                                      :select ::select-form))))
+                        :forms (s/+ (s/spec ::select-form))))
 (s/def ::insert-block (s/cat
                         :header #{:insert}
                         :forms (s/+ (s/spec ::insert-form))))
@@ -165,8 +162,9 @@
                          :forms (s/+ (s/spec ::execute-form))))
 
 (s/def ::rule (s/cat
-                :left ::select-block
+                :left ::when-block
                 :right (s/* (s/alt
+                              :select ::select-block
                               :insert ::insert-block
                               :delete ::delete-block
                               :update ::update-block
