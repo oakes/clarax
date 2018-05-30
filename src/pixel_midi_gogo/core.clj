@@ -7,7 +7,6 @@
             [clojure.tools.reader :as r]
             [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]
             [clojure.spec.alpha :as s]
-            [clojure.string :as str]
             [clojure.walk :as walk]))
 
 (def ^:const ns-sym 'pixel-midi-gogo.core)
@@ -61,11 +60,10 @@
       (case arrow
         <<- [symbol '<- '(clara.rules.accumulators/distinct)
              :from query]
-        <- (vec (concat [symbol '<-] query))
-        nil)
+        <- (vec (concat [symbol '<-] query)))
       query)))
 
-(defn transform-select-form [rule-sym {:keys [binding record] :as form}]
+(defn transform-select-form [query-name {:keys [binding] :as form}]
   (list
     (:symbol binding)
     (list
@@ -75,8 +73,7 @@
         '(deref pixel-midi-gogo.core/*session)
         (list
           'clara.rules/query
-          (add-query
-            (->> record name str/lower-case (format (str rule-sym "-%s-query")) symbol)
+          (add-query query-name
             (list [] ['?ret '<-
                       (case (:arrow binding)
                         <<- '(clara.rules.accumulators/distinct)
@@ -92,7 +89,8 @@
                 selects (->> right
                              (keep (fn [[type block]]
                                      (when (= type :select) block)))
-                             (mapcat :forms))
+                             (mapcat :forms)
+                             vec)
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
@@ -110,7 +108,11 @@
                       (list
                         (concat
                           (list 'let
-                            (vec (mapcat (partial transform-select-form sym) selects)))
+                            (vec (reduce-kv
+                                   (fn [v i form]
+                                     (into v (transform-select-form (str sym "-query-" i) form)))
+                                   []
+                                   selects)))
                           right-side))
                       :else
                       right-side)))))
