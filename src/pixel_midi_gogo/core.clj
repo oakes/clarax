@@ -45,15 +45,18 @@
          (map (juxt :key :val))
          (into {}))))
 
-(defn transform-when-form [{:keys [binding record args]}]
-  (let [query (vec (cons
-                     record
-                     (map (fn [{:keys [key val]}]
-                            (let [key (symbol (name key))]
-                              (if (list? val)
-                                (walk/prewalk-replace {'% key} val)
-                                (list '= key val))))
-                       args)))]
+(defn build-query [{:keys [record args]}]
+  (vec (cons
+         record
+         (map (fn [{:keys [key val]}]
+                (let [key (symbol (name key))]
+                  (if (list? val)
+                    (walk/prewalk-replace {'% key} val)
+                    (list '= key val))))
+           args))))
+
+(defn transform-when-form [{:keys [binding] :as form}]
+  (let [query (build-query form)]
     (if-let [{:keys [symbol arrow]} binding]
       (case arrow
         <<- [symbol '<- '(clara.rules.accumulators/distinct)
@@ -62,7 +65,7 @@
         nil)
       query)))
 
-(defn transform-select-form [rule-sym {:keys [binding record]}]
+(defn transform-select-form [rule-sym {:keys [binding record] :as form}]
   (list
     (:symbol binding)
     (list
@@ -78,7 +81,7 @@
                       (case (:arrow binding)
                         <<- '(clara.rules.accumulators/distinct)
                         <- '(clara.rules.accumulators/max :timestamp :returns-fact true))
-                      :from [record]])))))))
+                      :from (build-query form)])))))))
 
 (defn add-rules [rules]
   (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
@@ -132,7 +135,8 @@
                      :args (s/* ::pair)))
 (s/def ::select-form (s/cat
                        :binding ::binding
-                       :record symbol?))
+                       :record symbol?
+                       :args (s/* ::pair)))
 (s/def ::insert-form (s/cat
                        :record symbol?
                        :args (s/* ::pair)))
