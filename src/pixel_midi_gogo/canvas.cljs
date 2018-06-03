@@ -5,16 +5,19 @@
 
 (defrecord Canvas [parent value timestamp])
 
-(defonce ^:private *game (atom nil))
+(defonce ^:private *elem->game (atom {}))
 
 (defrule canvases
   [?canvas <- (acc/max :timestamp :returns-fact true)
    :from [Canvas (= ?parent parent)]]
   =>
   (if-let [elem (.querySelector js/document ?parent)]
-    (let [game (or @*game
-                   (reset! *game (p/create-game (.-clientWidth elem) (.-clientHeight elem)
-                                   {:parent elem})))]
+    (let [game (or (get @*elem->game elem)
+                   (-> *elem->game
+                       (swap! assoc elem
+                         (p/create-game (.-clientWidth elem) (.-clientHeight elem)
+                           {:parent elem}))
+                       (get elem)))]
       (doto game
         (p/start)
         (p/listen "resize"
