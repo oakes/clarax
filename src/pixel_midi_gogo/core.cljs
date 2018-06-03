@@ -13,9 +13,14 @@
 (defn delete [fact]
   (rules/retract! fact))
 
-(defn edit [fact new-args]
-  (rules/retract! fact)
-  (rules/insert! (merge fact new-args)))
+(defn edit
+  ([fact new-args]
+   (rules/retract! fact)
+   (rules/insert! (merge fact new-args)))
+  ([session fact new-args]
+   (-> session
+       (rules/retract fact)
+       (rules/insert (merge fact new-args)))))
 
 (defn watch-files [files]
   (when-not js/COMPILED

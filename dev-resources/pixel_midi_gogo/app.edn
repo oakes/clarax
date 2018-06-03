@@ -12,7 +12,7 @@
 
 :when
 [?mouse <- Mouse]
-[View]
+[View :mounted? true]
 :insert
 [Canvas
  :parent "#game"
