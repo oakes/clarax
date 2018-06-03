@@ -15,19 +15,19 @@
     (let [game (or (get @*elem->game elem)
                    (-> *elem->game
                        (swap! assoc elem
-                         (p/create-game (.-clientWidth elem) (.-clientHeight elem)
-                           {:parent elem}))
+                         (let [game (p/create-game (.-clientWidth elem) (.-clientHeight elem)
+                                      {:parent elem})]
+                           (doto game
+                             (p/start)
+                             (p/listen "resize"
+                               (fn [event]
+                                 (p/set-size game (.-clientWidth elem) (.-clientHeight elem)))))))
                        (get elem)))]
-      (doto game
-        (p/start)
-        (p/listen "resize"
-          (fn [event]
-            (p/set-size game (.-clientWidth elem) (.-clientHeight elem))))
-        (p/set-screen
-          (reify p/Screen
-            (on-show [this])
-            (on-hide [this])
-            (on-render [this]
-              (p/render game (:value ?canvas)))))))
+      (p/set-screen game
+        (reify p/Screen
+          (on-show [this])
+          (on-hide [this])
+          (on-render [this]
+            (p/render game (:value ?canvas))))))
     (throw (js/Error. (str "Couldn't find " ?parent)))))
 

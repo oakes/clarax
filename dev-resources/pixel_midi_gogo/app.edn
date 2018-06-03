@@ -1,10 +1,30 @@
 [TodoItem :text "Hello, world!"]
 [NewTodo :text ""]
 [EditTodo :text "" :record nil]
+[Mouse :x 0 :y 0]
+
+:when
+[Event :data (= (:id %) :pointer), :options ?opts]
+:select
+[?mouse <- Mouse]
+:update
+[?mouse :x (:clientX ?opts) :y (:clientY ?opts)]
+
+:when
+[?mouse <- Mouse]
+[View]
+:insert
 [Canvas
  :parent "#game"
- :value [:fill {:color "lightblue"}
-         [:rect {:width 250 :height 250}]]]
+ :value
+ (let [rect (.getBoundingClientRect (.querySelector js/document "#game"))]
+   [:fill {:color "lightblue"}
+    [:rect {:width 250 :height 250}
+     [:fill {:color "red"}
+      [:ellipse {:width 50
+                 :height 50
+                 :x (- (:x ?mouse) (.-left rect))
+                 :y (- (:y ?mouse) (.-top rect))}]]]])]
 
 :when
 [Event :data (= (:id %) :input), :options ?opts]
@@ -93,5 +113,7 @@
                   "Edit"]
                  [:button {:on-click {:id :rem-btn
                                       :record item}}
-                  "Remove"]])]))]]
+                  "Remove"]])]))
+         [:div {:id "game"
+                :on-mouse-move {:id :pointer}}]]]
 

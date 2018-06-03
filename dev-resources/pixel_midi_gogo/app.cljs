@@ -12,6 +12,8 @@
 
 (defrecord EditTodo [text record timestamp])
 
+(defrecord Mouse [x y])
+
 (pmg/init
   [pixel-midi-gogo.core
    pixel-midi-gogo.view
