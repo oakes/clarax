@@ -30,7 +30,9 @@
   [?view <- (acc/max :timestamp :returns-fact true)
    :from [View (= ?parent parent)]]
   =>
-  (-> (walk/prewalk update-attrs (:value ?view))
-      empty-comp
-      (rum/mount (.querySelector js/document ?parent))))
+  (if-let [elem (.querySelector js/document ?parent)]
+    (-> (walk/prewalk update-attrs (:value ?view))
+        empty-comp
+        (rum/mount elem))
+    (throw (js/Error. (str "Couldn't find " ?parent)))))
 

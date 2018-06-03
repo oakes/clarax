@@ -1,6 +1,10 @@
 [TodoItem :text "Hello, world!"]
 [NewTodo :text ""]
 [EditTodo :text "" :record nil]
+[Canvas
+ :parent "#game"
+ :value [:fill {:color "lightblue"}
+         [:rect {:width 250 :height 250}]]]
 
 :when
 [Event :data (= (:id %) :input), :options ?opts]
