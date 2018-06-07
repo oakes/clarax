@@ -4,11 +4,19 @@
 
 (def *session (atom nil))
 
-(defn insert
+(defn insert*
   ([fact]
    (rules/insert! fact))
   ([session fact]
    (rules/insert session fact)))
+
+(defmulti insert (fn [& args]
+                   (-> args last type)))
+
+(defmethod insert
+  :default
+  [& args]
+  (apply insert* args))
 
 (defn delete [fact]
   (rules/retract! fact))
