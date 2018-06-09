@@ -1,8 +1,8 @@
 (ns pixel-midi-gogo.view
-  (:require [clara.rules :as rules :refer [defrule]]
+  (:require [clara.rules :refer [defrule]]
             [rum.core :as rum]
             [clojure.walk :as walk]
-            [pixel-midi-gogo.core :as pmg-core :refer [*session]]
+            [pixel-midi-gogo.core :as pmg-core]
             [pixel-midi-gogo.event :refer [add-event]]
             [clara.rules.accumulators :as acc]))
 
@@ -10,25 +10,20 @@
 
 (defn on-mount [state]
   (let [[_ view] (:rum/args state)
-        add-view (fn [session]
-                   (-> session
-                       (pmg-core/insert* view)
-                       rules/fire-rules))]
-    (if @*session
-      (swap! *session add-view)
-      (add-watch *session (pr-str view)
+        id (pr-str view)]
+    (if @pmg-core/*session
+      (swap! pmg-core/*session pmg-core/insert* view)
+      (add-watch pmg-core/*session id
         (fn [_ _ old-session new-session]
           (when (and (nil? old-session)
                      (some? new-session))
-            (swap! *session add-view))))))
+            (swap! pmg-core/*session pmg-core/insert* view)
+            (remove-watch pmg-core/*session id))))))
   state)
 
 (defn on-unmount [state]
   (let [[_ view] (:rum/args state)]
-    (swap! *session (fn [session]
-                      (-> session
-                          (pmg-core/delete view)
-                          rules/fire-rules))))
+    (swap! pmg-core/*session pmg-core/delete view))
   state)
 
 (rum/defc empty-comp

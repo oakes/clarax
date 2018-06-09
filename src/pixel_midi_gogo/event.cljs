@@ -1,5 +1,5 @@
 (ns pixel-midi-gogo.event
-  (:require [pixel-midi-gogo.core :refer [insert *session]]
+  (:require [pixel-midi-gogo.core :as pmg-core]
             [clara.rules :as rules]
             [clojure.walk :as walk]))
 
@@ -14,9 +14,5 @@
          :as opts} (->> e
                         jsx->clj
                         walk/keywordize-keys)]
-    (swap! *session
-      (fn [session]
-        (-> session
-            (insert (->Event data opts (.getTime (js/Date.))))
-            rules/fire-rules)))))
+    (swap! pmg-core/*session pmg-core/insert (->Event data opts (.getTime (js/Date.))))))
 
