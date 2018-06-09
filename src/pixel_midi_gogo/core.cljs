@@ -18,8 +18,11 @@
   [& args]
   (apply insert* args))
 
-(defn delete [fact]
-  (rules/retract! fact))
+(defn delete
+  ([fact]
+   (rules/retract! fact))
+  ([session fact]
+   (rules/retract session fact)))
 
 (defn edit
   ([fact new-args]

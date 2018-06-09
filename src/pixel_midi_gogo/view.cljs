@@ -23,10 +23,19 @@
             (swap! *session add-view))))))
   state)
 
+(defn on-unmount [state]
+  (let [[_ view] (:rum/args state)]
+    (swap! *session (fn [session]
+                      (-> session
+                          (pmg-core/delete view)
+                          rules/fire-rules))))
+  state)
+
 (rum/defc empty-comp
   < {:did-mount on-mount
      :did-remount (fn [_ state]
-                    (on-mount state))}
+                    (on-mount state))
+     :will-unmount on-unmount}
   [content view]
   content)
 
