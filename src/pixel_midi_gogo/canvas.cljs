@@ -5,7 +5,7 @@
 
 (defrecord Canvas [parent value timestamp])
 
-(defonce ^:private *elem->game (atom {}))
+(defonce *elem->game (atom {}))
 
 (defrule canvases
   [?canvas <- (acc/max :timestamp :returns-fact true)
