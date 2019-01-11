@@ -22,7 +22,8 @@
     :resource-paths resource-paths
     :dependencies (into '[[adzerk/boot-cljs "2.1.5" :scope "test"]
                           [adzerk/boot-reload "0.6.0" :scope "test"]
-                          [nightlight "RELEASE" :scope "test"]]
+                          [nightlight "RELEASE" :scope "test"]
+                          [orchestra "2018.12.06-2" :scope "test"]]
                         dependencies)
     :repositories (conj (get-env :repositories)
                     ["clojars" {:url "https://clojars.org/repo/"
@@ -32,21 +33,23 @@
 (require
   '[adzerk.boot-cljs :refer [cljs]]
   '[adzerk.boot-reload :refer [reload]]
-  '[nightlight.boot :refer [nightlight]])
+  '[nightlight.boot :refer [nightlight]]
+  '[orchestra.spec.test :refer [instrument]])
 
 (task-options!
+  aot {:namespace '#{pixel-midi-gogo.app}}
   pom {:project 'pixel-midi-gogo
        :version "1.0.0-SNAPSHOT"
        :url "https://github.com/oakes/PixiMidiGogo"
        :license {"Public Domain" "http://unlicense.org/UNLICENSE"}}
   push {:repo "clojars"})
 
-(deftask run []
+(deftask run-cljs []
   (set-env!
     :dependencies #(into (set %) (:dependencies (read-deps-edn [:cljs])))
     :resource-paths #(conj % "dev-resources"))
   (comp
-    (nightlight :port 4000 #_#_:url "http://localhost:3000")
+    ;(nightlight :port 4000 #_#_:url "http://localhost:3000")
     (watch)
     (reload :asset-path "public")
     (cljs
@@ -56,6 +59,22 @@
       (require '[pixel-midi-gogo.server :refer [dev-start]])
       ((resolve 'dev-start) {:port 3000 :main-cljs-file "dev-resources/pixel_midi_gogo/app.cljs"}))
     (target)))
+
+(def launch-main
+  (memoize
+    (fn []
+      (require '[pixel-midi-gogo.app :refer [dev-main]])
+      (instrument)
+      (future ((resolve 'dev-main))))))
+
+(deftask run []
+  (set-env!
+    :resource-paths #(conj % "dev-resources"))
+  (comp
+    (aot)
+    (run-cljs)
+    (with-pass-thru _
+      (launch-main))))
 
 (deftask local []
   (comp (pom) (jar) (install)))

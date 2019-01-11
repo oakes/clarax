@@ -6,6 +6,14 @@
             [clara.rules :as rules])
   (:require-macros [pixel-midi-gogo.core :as pmg]))
 
+(when js/window.java
+  (set! (.-onload js/window)
+    (fn []
+      ; hack thanks to http://stackoverflow.com/a/28414332/1663009
+      (set! (.-status js/window) "MY-MAGIC-VALUE")
+      (set! (.-status js/window) "")
+      (.onload js/window.java))))
+
 (defrecord TodoItem [text])
 
 (defrecord NewTodo [text timestamp])

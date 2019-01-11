@@ -2,12 +2,11 @@
   (:require [clojure.java.io :as io]
             [clojure.edn :as edn]
             [ring.middleware.resource :refer [wrap-resource]]
-            [ring.middleware.file :refer [wrap-file]]
             [ring.middleware.reload :refer [wrap-reload]]
             [ring.middleware.content-type :refer [wrap-content-type]]
             [ring.middleware.keyword-params :refer [wrap-keyword-params]]
             [ring.middleware.params :refer [wrap-params]]
-            [ring.util.response :refer [redirect not-found]]
+            [ring.util.response :refer [redirect not-found file-response]]
             [ring.util.request :refer [body-string]]
             [org.httpkit.server :refer [run-server]]
             [rum.core :as rum]
@@ -34,6 +33,7 @@
                (reset! *files))
           {:status 200})
         nil)
+      (file-response (str "target/public" uri))
       (not-found "Page not found")))
 
 (defn print-server [server]
@@ -68,8 +68,7 @@
 (defn dev-start [opts]
   (.mkdirs (io/file "target" "public"))
   (start (-> #'handler
-             (wrap-reload)
-             (wrap-file "target/public"))
+             (wrap-reload))
     opts))
 
 (def cli-options
