@@ -8,7 +8,7 @@
 :select
 [?mouse <- Mouse]
 :update
-[?mouse :x (:clientX ?opts) :y (:clientY ?opts)]
+[?mouse :x (get ?opts "clientX") :y (get ?opts "clientY")]
 
 :when
 [?mouse <- Mouse]
@@ -17,21 +17,21 @@
 [Canvas
  :parent "#game"
  :value
- (let [rect (.getBoundingClientRect (.querySelector js/document "#game"))]
+ (do ;let [rect (.getBoundingClientRect (.querySelector js/document "#game"))]
    [:fill {:color "lightblue"}
     [:rect {:width 250 :height 250}
      [:fill {:color "red"}
       [:ellipse {:width 50
                  :height 50
-                 :x (- (:x ?mouse) (.-left rect))
-                 :y (- (:y ?mouse) (.-top rect))}]]]])]
+                 :x (- (:x ?mouse) 0 #_(.-left rect))
+                 :y (- (:y ?mouse) 0 #_(.-top rect))}]]]])]
 
 :when
 [Event :data (= (:id %) :input), :options ?opts]
 :select
 [?input <- NewTodo]
 :update
-[?input :text (-> ?opts :target .-value)]
+[?input :text (get-in ?opts ["target" "value"])]
 
 :when
 [Event :data (= (:id %) :add-btn)]
@@ -69,7 +69,7 @@
 [?edit <- EditTodo]
 :update
 [?edit
- :text (-> ?opts :target .-value)
+ :text (get-in ?opts ["target" "value"])
  :record (:record (:data ?event))]
 
 :when

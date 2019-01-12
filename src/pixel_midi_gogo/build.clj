@@ -1,5 +1,7 @@
-(ns pixel-midi-gogo.core
-  (:require [clara.macros :as macros]
+(ns pixel-midi-gogo.build
+  (:require [pixel-midi-gogo.core]
+            [clara.rules.compiler :as compiler]
+            [clara.macros :as macros]
             [clara.rules :as rules]
             [cljs.env :as env]
             [clara.rules.dsl :as dsl]
@@ -11,14 +13,24 @@
 
 (def ^:const ns-sym 'pixel-midi-gogo.core)
 
+(def ^:dynamic *cljs?* false)
+
+(def default-rules
+  '[:when
+    [?canvas <- Canvas]
+    :execute
+    (pixel-midi-gogo.core/send-action "canvas-insert" ?canvas)])
+
 (defn add-rule [name body]
   (let [rule (dsl/build-rule name body)]
-    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] rule)
+    (when *cljs?*
+      (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] rule))
     rule))
 
 (defn add-query [name body]
   (let [query (dsl/build-query name body)]
-    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] query)
+    (when *cljs?*
+      (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] query))
     query))
 
 (defn transform-insert-form [{:keys [record args]}]
@@ -31,7 +43,7 @@
              (map (juxt :key :val))
              (into {}))
         :timestamp
-        #(or % '(.getTime (js/Date.)))))))
+        #(or % '(pixel-midi-gogo.core/get-time))))))
 
 (defn transform-delete-form [form]
   (list 'pixel-midi-gogo.core/delete form))
@@ -63,7 +75,15 @@
         <- (vec (concat [symbol '<-] query)))
       query)))
 
-(defn transform-select-form [query-name {:keys [binding] :as form}]
+(defn select-form->query [query-name {:keys [binding] :as form}]
+  (add-query query-name
+    (list [] ['?ret '<-
+              (case (:arrow binding)
+                <<- '(clara.rules.accumulators/distinct)
+                <- '(clara.rules.accumulators/max :timestamp :returns-fact true))
+              :from (build-query form)])))
+
+(defn transform-select-form [query {:keys [binding] :as form}]
   (list
     (:symbol binding)
     (list
@@ -71,18 +91,13 @@
       (list
         'some->
         '(deref pixel-midi-gogo.core/*session)
-        (list
-          'clara.rules/query
-          (add-query query-name
-            (list [] ['?ret '<-
-                      (case (:arrow binding)
-                        <<- '(clara.rules.accumulators/distinct)
-                        <- '(clara.rules.accumulators/max :timestamp :returns-fact true))
-                      :from (build-query form)])))))))
+        (list 'clara.rules/query query)))))
 
 (defn add-rules [rules]
-  (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {})
-  (doseq [i (range (count rules))
+  (when *cljs?*
+    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {}))
+  (flatten
+    (for [i (range (count rules))
           :let [{:keys [left right]} (get rules i)
                 sym (symbol (str "rule-" i))
                 left-side (mapv transform-when-form (:forms left))
@@ -91,6 +106,11 @@
                                      (when (= type :select) block)))
                              (mapcat :forms)
                              vec)
+                queries (reduce-kv
+                          (fn [v i form]
+                            (conj v (select-form->query (str sym "-query-" i) form)))
+                          []
+                          selects)
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
@@ -100,29 +120,25 @@
                                  :update (map transform-update-form (:forms block))
                                  :execute (:forms block)))
                              right)]]
-    (add-rule sym (concat left-side ['=>]
-                    (cond
-                      (empty? right-side)
-                      ['(do)]
-                      (seq selects)
-                      (list
-                        (concat
-                          (list 'let
-                            (vec (reduce-kv
-                                   (fn [v i form]
-                                     (into v (transform-select-form (str sym "-query-" i) form)))
-                                   []
-                                   selects)))
-                          right-side))
-                      :else
-                      right-side)))))
+      (cons (add-rule sym (concat left-side ['=>]
+                            (cond
+                              (empty? right-side)
+                              ['(do)]
+                              (seq selects)
+                              (list
+                                (concat
+                                  (list 'let (vec (mapcat transform-select-form queries selects)))
+                                  right-side))
+                              :else
+                              right-side)))
+        queries))))
 
 (defn read-file [filename]
   (let [reader (indexing-push-back-reader (slurp (io/reader filename)))]
     (loop [forms []]
       (if-let [form (r/read {:eof nil} reader)]
         (recur (conj forms form))
-        forms))))
+        (into forms default-rules)))))
 
 (s/def ::binding (s/cat
                    :symbol symbol?
@@ -179,7 +195,7 @@
                 :init-forms (s/* (s/spec ::insert-form))
                 :rules (s/* ::rule)))
 
-(defmacro init [nses files]
+(defmacro init-cljs [nses files]
   (let [parsed-files (mapv #(s/conform ::file (read-file %)) files)
         init-forms (->> parsed-files
                         (mapcat :init-forms)
@@ -187,11 +203,34 @@
         rules (->> parsed-files
                    (mapcat :rules)
                    vec)
-        _ (add-rules rules)
+        _ (binding [*cljs?* true]
+            (add-rules rules))
         session (macros/sources-and-options->session-assembly-form
                   (map #(list 'quote %) nses))]
     `(do
        (pixel-midi-gogo.core/watch-files ~files)
        (reset! pixel-midi-gogo.core/*session
          (-> ~session ~@init-forms rules/fire-rules)))))
+
+(extend-type java.util.Map
+  compiler/IRuleSource
+  (load-rules [m]
+    [m]))
+
+(defn init-clj [ns files]
+  (let [parsed-files (mapv #(s/conform ::file (read-file %)) files)
+        init-forms (->> parsed-files
+                        (mapcat :init-forms)
+                        (mapv transform-insert-form))
+        rules (binding [*ns* ns]
+                (->> parsed-files
+                     (mapcat :rules)
+                     vec
+                     add-rules
+                     (mapv eval)))
+        session (compiler/mk-session rules)
+        init-session (binding [*ns* ns]
+                       (eval (list 'fn '[session] (concat '[-> session] init-forms))))]
+    (reset! pixel-midi-gogo.core/*session
+      (-> session init-session rules/fire-rules))))
 

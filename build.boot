@@ -37,7 +37,7 @@
   '[orchestra.spec.test :refer [instrument]])
 
 (task-options!
-  aot {:namespace '#{pixel-midi-gogo.app}}
+  aot {:namespace '#{pixel-midi-gogo.init}}
   pom {:project 'pixel-midi-gogo
        :version "1.0.0-SNAPSHOT"
        :url "https://github.com/oakes/PixiMidiGogo"
@@ -63,12 +63,14 @@
 (def launch-main
   (memoize
     (fn []
-      (require '[pixel-midi-gogo.app :refer [dev-main]])
+      (require '[pixel-midi-gogo.init :refer [dev-main]])
       (instrument)
-      (future ((resolve 'dev-main))))))
+      (future (try ((resolve 'dev-main))
+                (catch Exception e (.printStackTrace e)))))))
 
 (deftask run []
   (set-env!
+    :dependencies #(into (set %) (:dependencies (read-deps-edn [:cljs])))
     :resource-paths #(conj % "dev-resources"))
   (comp
     (aot)
