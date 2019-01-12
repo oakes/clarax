@@ -57,7 +57,7 @@
       :compiler-options {:asset-path "/main.out"})
     (with-pass-thru _
       (require '[pixel-midi-gogo.server :refer [dev-start]])
-      ((resolve 'dev-start) {:port 3000 :main-cljs-file "dev-resources/pixel_midi_gogo/app.cljs"}))
+      ((resolve 'dev-start) {:port 3000 :main-cljs-file "dev-resources/pixel_midi_gogo/app.cljc"}))
     (target)))
 
 (def launch-main
