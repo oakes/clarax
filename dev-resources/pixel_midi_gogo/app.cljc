@@ -7,7 +7,10 @@
             [pixel-midi-gogo.canvas #?@(:cljs [:refer [Canvas map->Canvas]]
                                         :clj [:refer [map->Canvas]])]
             [clara.rules :as rules]
-            #?(:clj [pixel-midi-gogo.build :as build]))
+            [clojure.string :as str]
+            #?@(:clj [[pixel-midi-gogo.build :as build]]
+                :cljs [[cljs.tools.reader.edn :as edn]
+                       [goog.object :as gobj]]))
   #?(:clj (:import [pixel_midi_gogo.view View]
                    [pixel_midi_gogo.event Event]
                    [pixel_midi_gogo.canvas Canvas]))
@@ -23,14 +26,40 @@
 
 (def current-ns *ns*)
 
-(pmg-core/init-readers
-  {View map->View
-   Event map->Event
-   TodoItem map->TodoItem
-   NewTodo map->NewTodo
-   EditTodo map->EditTodo
-   Mouse map->Mouse
-   Canvas map->Canvas})
+(defn normalize-nses [readers]
+  (reduce
+    (fn [readers [k v]]
+      (-> readers
+          (assoc (-> k pr-str (str/replace "-" "_") symbol) v)
+          (assoc (-> k pr-str (str/replace "_" "-") symbol) v)
+          (assoc (-> k pr-str
+                     (str/replace "_" "-")
+                     (str/replace "/" ".") symbol) v)
+          (assoc (-> k pr-str
+                     (str/replace "-" "_")
+                     (str/replace "/" ".") symbol) v)))
+    {}
+    readers))
+
+(def readers (normalize-nses
+               {View map->View
+                Event map->Event
+                TodoItem map->TodoItem
+                NewTodo map->NewTodo
+                EditTodo map->EditTodo
+                Mouse map->Mouse
+                Canvas map->Canvas
+                'object (constantly nil)
+                'js (constantly nil)}))
+
+#?(:cljs [(doto js/window
+            (gobj/set "onAction"
+              (fn [action-name data]
+                (pmg-core/action action-name (edn/read-string {:readers readers} data)))))
+          (reset! pmg-core/*send-action-fn
+            (if js/window.java
+              #(.onaction js/window.java %1 (pr-str %2))
+              pmg-core/action))])
 
 (defn init []
   (#?(:clj build/init-clj :cljs build/init-cljs)

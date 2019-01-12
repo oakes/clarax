@@ -25,5 +25,5 @@
 (defmethod pmg-core/insert
   View
   [& args]
-  (pmg-core/send-action "view-insert" (last args)))
+  (@pmg-core/*send-action-fn "view-insert" (last args)))
 

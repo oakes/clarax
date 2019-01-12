@@ -27,9 +27,13 @@
                  (onaction [this action-name data]
                    (try
                      (pmg-core/action action-name
-                       (edn/read-string {:readers @pmg-core/*readers} data))
+                       (edn/read-string {:readers app/readers} data))
                      (catch Exception e (.printStackTrace e) (throw e)))))]
-    (reset! pmg-core/*engine engine)
+    (reset! pmg-core/*send-action-fn
+      (fn [action-name data]
+        (-> engine
+            (.executeScript "window")
+            (.call "onAction" (into-array [action-name (pr-str data)])))))
     (doto stage
       (.setTitle "PixelMidiGogo")
       (.setScene scene)

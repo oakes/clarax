@@ -7,12 +7,12 @@
 
 (defn on-mount [state]
   (let [[_ view] (:rum/args state)]
-    (pmg-core/send-action "view-mount" view))
+    (@pmg-core/*send-action-fn "view-mount" view))
   state)
 
 (defn on-unmount [state]
   (let [[_ view] (:rum/args state)]
-    (pmg-core/send-action "view-unmount" view))
+    (@pmg-core/*send-action-fn "view-unmount" view))
   state)
 
 (rum/defc empty-comp
@@ -25,7 +25,7 @@
 
 (defn add-event [data e]
   (let [opts (utils/obj->clj e 0)]
-    (pmg-core/send-action "event-insert" (->Event data opts (.getTime (js/Date.))))))
+    (@pmg-core/*send-action-fn "event-insert" (->Event data opts (.getTime (js/Date.))))))
 
 (defn update-attrs [x]
   (if (and (vector? x)

@@ -19,7 +19,7 @@
   '[:when
     [?canvas <- Canvas]
     :execute
-    (pixel-midi-gogo.core/send-action "canvas-insert" ?canvas)])
+    (@pixel-midi-gogo.core/*send-action-fn "canvas-insert" ?canvas)])
 
 (defn add-rule [name body]
   (let [rule (dsl/build-rule name body)]
