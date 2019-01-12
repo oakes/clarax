@@ -10,7 +10,8 @@
             [clojure.string :as str]
             #?@(:clj [[pixel-midi-gogo.build :as build]]
                 :cljs [[cljs.tools.reader.edn :as edn]
-                       [goog.object :as gobj]]))
+                       [goog.object :as gobj]
+                       [pixel-midi-gogo.utils :as utils]]))
   #?(:clj (:import [pixel_midi_gogo.view View]
                    [pixel_midi_gogo.event Event]
                    [pixel_midi_gogo.canvas Canvas]))
@@ -23,6 +24,8 @@
 (defrecord EditTodo [text record timestamp])
 
 (defrecord Mouse [x y])
+
+(defrecord ClientRect [selector rect])
 
 (def current-ns *ns*)
 
@@ -48,6 +51,7 @@
                 NewTodo map->NewTodo
                 EditTodo map->EditTodo
                 Mouse map->Mouse
+                ClientRect map->ClientRect
                 Canvas map->Canvas
                 'object (constantly nil)
                 'js (constantly nil)}))
@@ -59,7 +63,17 @@
           (reset! pmg-core/*send-action-fn
             (if js/window.java
               #(.onaction js/window.java %1 (pr-str %2))
-              pmg-core/action))])
+              pmg-core/action))
+          (defmethod pmg-core/action
+            "client-rect"
+            [_ client-rect]
+            (let [new-rect (.getBoundingClientRect (.querySelector js/document "#game"))]
+              (if client-rect
+                (utils/edit-event client-rect new-rect)
+                (utils/add-event {:id :client-rect} new-rect))))])
+
+(defn on-mount [client-rect]
+  (@pmg-core/*send-action-fn "client-rect" client-rect))
 
 (defn init []
   (#?(:clj build/init-clj :cljs build/init-cljs)

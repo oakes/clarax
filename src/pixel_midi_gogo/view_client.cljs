@@ -1,6 +1,5 @@
 (ns pixel-midi-gogo.view-client
   (:require [pixel-midi-gogo.core :as pmg-core]
-            [pixel-midi-gogo.event :refer [->Event]]
             [pixel-midi-gogo.utils :as utils]
             [rum.core :as rum]
             [clojure.walk :as walk]))
@@ -17,15 +16,12 @@
 
 (rum/defc empty-comp
   < {:did-mount on-mount
+     :after-render on-mount
      :did-remount (fn [_ state]
                     (on-mount state))
      :will-unmount on-unmount}
   [content view]
   content)
-
-(defn add-event [data e]
-  (let [opts (utils/obj->clj e 0)]
-    (@pmg-core/*send-action-fn "event-insert" (->Event data opts (.getTime (js/Date.))))))
 
 (defn update-attrs [x]
   (if (and (vector? x)
@@ -36,7 +32,7 @@
           (fn [new-attrs [k v]]
             (assoc new-attrs
               k (if (.startsWith (name k) "on-")
-                  (partial add-event v)
+                  (partial utils/add-event v)
                   v)))
           {}
           attrs)))

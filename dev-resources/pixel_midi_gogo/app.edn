@@ -11,20 +11,28 @@
 [?mouse :x (get ?opts "clientX") :y (get ?opts "clientY")]
 
 :when
+[View]
+:select
+[?event <- Event :data (= (:id %) :client-rect)]
+:execute
+(on-mount ?event)
+
+:when
 [?mouse <- Mouse]
 [View]
+:select
+[?event <- Event :data (= (:id %) :client-rect)]
 :insert
 [Canvas
  :parent "#game"
  :value
- (do ;let [rect (.getBoundingClientRect (.querySelector js/document "#game"))]
-   [:fill {:color "lightblue"}
-    [:rect {:width 250 :height 250}
-     [:fill {:color "red"}
-      [:ellipse {:width 50
-                 :height 50
-                 :x (- (:x ?mouse) 0 #_(.-left rect))
-                 :y (- (:y ?mouse) 0 #_(.-top rect))}]]]])]
+ [:fill {:color "lightblue"}
+  [:rect {:width 250 :height 250}
+   [:fill {:color "red"}
+    [:ellipse {:width 50
+               :height 50
+               :x (- (:x ?mouse) (get-in ?event [:options "left"] 0))
+               :y (- (:y ?mouse) (get-in ?event [:options "top"] 0))}]]]]]
 
 :when
 [Event :data (= (:id %) :input), :options ?opts]

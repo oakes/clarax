@@ -8,3 +8,8 @@
   [_ event]
   (swap! pmg-core/*session pmg-core/insert event))
 
+(defmethod pmg-core/action
+  "event-edit"
+  [_ {:keys [old new]}]
+  (swap! pmg-core/*session pmg-core/edit old new))
+
