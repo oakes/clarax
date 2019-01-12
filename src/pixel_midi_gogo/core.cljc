@@ -3,6 +3,7 @@
                :cljs [cljs.tools.reader.edn :as edn])
             [clara.rules :as rules]
             [clara.rules.engine :as engine]
+            [clara.rules.accumulators]
             [clojure.string :as str]
             #?(:cljs [goog.object :as gobj]))
   #?(:cljs (:import goog.net.XhrIo)))
