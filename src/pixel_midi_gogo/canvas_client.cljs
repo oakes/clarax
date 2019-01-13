@@ -4,9 +4,7 @@
 
 (defonce *elem->game (atom {}))
 
-(defmethod pmg-core/action
-  "canvas-insert"
-  [_ {:keys [parent] :as canvas}]
+(defn insert [{:keys [parent] :as canvas}]
   (if-let [elem (.querySelector js/document parent)]
     (let [{:keys [game *content]}
           (or (get @*elem->game elem)

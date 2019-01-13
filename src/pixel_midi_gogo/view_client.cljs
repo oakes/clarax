@@ -6,12 +6,12 @@
 
 (defn on-mount [state]
   (let [[_ view] (:rum/args state)]
-    (@pmg-core/*send-action-fn "view-mount" view))
+    (pmg-core/send-action! view "mount"))
   state)
 
 (defn on-unmount [state]
   (let [[_ view] (:rum/args state)]
-    (@pmg-core/*send-action-fn "view-unmount" view))
+    (pmg-core/send-action! view "unmount"))
   state)
 
 (rum/defc empty-comp
@@ -32,15 +32,13 @@
           (fn [new-attrs [k v]]
             (assoc new-attrs
               k (if (.startsWith (name k) "on-")
-                  (partial utils/add-event v)
+                  (partial utils/insert-event v)
                   v)))
           {}
           attrs)))
     x))
 
-(defmethod pmg-core/action
-  "view-insert"
-  [_ {:keys [parent value] :as view}]
+(defn insert [{:keys [parent value] :as view}]
   (if-let [elem (.querySelector js/document parent)]
     (-> (walk/prewalk update-attrs value)
         (empty-comp view)

@@ -25,7 +25,7 @@
 
 (defrecord Mouse [x y])
 
-(defrecord ClientRect [selector rect])
+(defrecord ClientRect [event])
 
 (def current-ns *ns*)
 
@@ -58,22 +58,23 @@
 
 #?(:cljs [(doto js/window
             (gobj/set "onAction"
-              (fn [action-name data]
-                (pmg-core/action action-name (edn/read-string {:readers readers} data)))))
-          (reset! pmg-core/*send-action-fn
-            (if js/window.java
-              #(.onaction js/window.java %1 (pr-str %2))
-              pmg-core/action))
-          (defmethod pmg-core/action
-            "client-rect"
-            [_ client-rect]
-            (let [new-rect (.getBoundingClientRect (.querySelector js/document "#game"))]
-              (if client-rect
-                (utils/edit-event client-rect new-rect)
-                (utils/add-event {:id :client-rect} new-rect))))])
+              (fn [record action-name]
+                (pmg-core/receive-action! (edn/read-string {:readers readers} record) action-name))))
+          (when js/window.java
+            (extend-type default
+              pmg-core/ActionSendable
+              (send-action! [this action-name]
+                (.onaction js/window.java (pr-str this) action-name))))
+          (extend-type ClientRect
+            pmg-core/ActionReceivable
+            (receive-action! [this action-name]
+              (let [rect (.getBoundingClientRect (.querySelector js/document "#game"))]
+                (if (:event this)
+                  (utils/update-event (:event this) rect)
+                  (utils/insert-event {:id :client-rect} rect)))))])
 
-(defn on-mount [client-rect]
-  (@pmg-core/*send-action-fn "client-rect" client-rect))
+(defn on-mount [event]
+  (pmg-core/send-action! (->ClientRect event) "client-rect"))
 
 (defn init []
   (#?(:clj build/init-clj :cljs build/init-cljs)

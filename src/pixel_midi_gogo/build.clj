@@ -19,7 +19,7 @@
   '[:when
     [?canvas <- Canvas]
     :execute
-    (@pixel-midi-gogo.core/*send-action-fn "canvas-insert" ?canvas)])
+    (pixel-midi-gogo.core/send-action! ?canvas "insert")])
 
 (defn add-rule [name body]
   (let [rule (dsl/build-rule name body)]
@@ -40,7 +40,7 @@
 
 (defn transform-insert-form [{:keys [record args]}]
   (list
-    'pixel-midi-gogo.core/insert
+    'pixel-midi-gogo.core/insert!
     (list
       (symbol (str "map->" record))
       (update (transform-args args)
@@ -48,11 +48,11 @@
         #(or % '(pixel-midi-gogo.core/get-time))))))
 
 (defn transform-delete-form [form]
-  (list 'pixel-midi-gogo.core/delete form))
+  (list 'pixel-midi-gogo.core/delete! form))
 
 (defn transform-update-form [{:keys [record args]}]
   (list
-    'pixel-midi-gogo.core/edit
+    'pixel-midi-gogo.core/update!
     record
     (transform-args args)))
 
@@ -61,12 +61,12 @@
                    :timestamp
                    #(or % '(pixel-midi-gogo.core/get-time)))]
     (list
-      'pixel-midi-gogo.core/upsert
-      query
+      'pixel-midi-gogo.core/upsert!
       (list
         (symbol (str "map->" record))
         new-args)
-      new-args)))
+      new-args
+      query)))
 
 (defn build-query [{:keys [record args]}]
   (vec (cons
@@ -237,8 +237,8 @@
                   (map #(list 'quote %) nses))]
     `(do
        (pixel-midi-gogo.core/watch-files ~files)
-       (reset! pixel-midi-gogo.core/*session
-         (-> ~session ~@init-forms rules/fire-rules)))))
+       (->> ~session ~@init-forms rules/fire-rules
+            (reset! pixel-midi-gogo.core/*session)))))
 
 (extend-type java.util.Map
   compiler/IRuleSource
@@ -258,7 +258,7 @@
                      (mapv eval)))
         session (compiler/mk-session rules)
         init-session (binding [*ns* ns]
-                       (eval (list 'fn '[session] (concat '[-> session] init-forms))))]
-    (reset! pixel-midi-gogo.core/*session
-      (-> session init-session rules/fire-rules))))
+                       (eval (list 'fn '[session] (concat '[->> session] init-forms))))]
+    (->> session init-session rules/fire-rules
+         (reset! pixel-midi-gogo.core/*session))))
 

@@ -5,68 +5,95 @@
   #?(:cljs (:import goog.net.XhrIo)))
 
 (defonce *session (atom nil))
-(defonce *send-action-fn
-  (atom (fn [action-name data]
-          (throw (#?(:clj Exception. :cljs js/Error.)
-                   "You must set the *send-action-fn")))))
+
+(defprotocol Insertable
+  (insert! [this] [this session]))
+
+(defprotocol Deletable
+  (delete! [this] [this session]))
+
+(defprotocol Updatable
+  (update! [this new-args] [this new-args session]))
+
+(defprotocol Upsertable
+  (upsert! [this new-args query] [this new-args query session]))
+
+(defprotocol ActionReceivable
+  (receive-action! [this action-name]))
+
+(defprotocol ActionSendable
+  (send-action! [this action-name]))
 
 (defn insert*
   ([fact]
    (rules/insert! fact))
-  ([session fact]
+  ([fact session]
    (if engine/*rule-context*
      (do (insert* fact) session)
      (-> session
          (rules/insert fact)
          rules/fire-rules))))
 
-(defmulti insert (fn [& args]
-                   (-> args last type)))
-
-(defmethod insert
-  :default
-  [& args]
-  (apply insert* args))
-
-(defmulti action (fn [& args]
-                   (first args)))
-
-(defn delete
+(defn delete*
   ([fact]
    (rules/retract! fact))
-  ([session fact]
+  ([fact session]
    (if engine/*rule-context*
-     (do (delete fact) session)
+     (do (delete* fact) session)
      (-> session
          (rules/retract fact)
          rules/fire-rules))))
 
-(defn edit
+(defn update*
   ([fact new-args]
    (rules/retract! fact)
-   (insert (merge fact new-args)))
-  ([session fact new-args]
+   (insert! (merge fact new-args)))
+  ([fact new-args session]
    (if engine/*rule-context*
-     (do (edit fact new-args) session)
-     (-> session
-         (rules/retract fact)
-         (insert (merge fact new-args))))))
+     (do (update* fact new-args) session)
+     (->> (rules/retract session fact)
+          (insert! (merge fact new-args))))))
 
-(defn upsert
-  ([query fact new-args]
+(defn upsert*
+  ([fact new-args query]
    (or (some-> @*session
-               (rules/query query)
-               first
-               :?ret
-               (edit new-args))
-       (insert fact)))
-  ([session query fact new-args]
+               (rules/query query) first :?ret
+               (update! new-args))
+       (insert! fact)))
+  ([fact new-args query session]
    (or (some-> session
-               (rules/query query)
-               first
-               :?ret
-               ((partial edit session) new-args))
-       (insert session fact))))
+               (rules/query query) first :?ret
+               (update! new-args session))
+       (insert! fact session))))
+
+(defn receive-action* [this action-name]
+  (case action-name
+    "insert" (swap! *session (partial insert! this))
+    "update" (swap! *session (partial update! (:old this) (:new this)))))
+
+(extend-type #?(:clj Object :cljs default)
+  Insertable
+  (insert!
+    ([this] (insert* this))
+    ([this session] (insert* this session)))
+  Deletable
+  (delete!
+    ([this] (delete* this))
+    ([this session] (delete* this session)))
+  Updatable
+  (update!
+    ([this new-args] (update* this new-args))
+    ([this new-args session] (update* this new-args session)))
+  Upsertable
+  (upsert!
+    ([this new-args query] (upsert* this new-args query))
+    ([this new-args query session] (upsert* this new-args query session)))
+  ActionReceivable
+  (receive-action! [this action-name]
+    (receive-action* this action-name))
+  ActionSendable
+  (send-action! [this action-name]
+    (receive-action! this action-name)))
 
 #?(:cljs (defn watch-files [files]
            (when-not js/COMPILED

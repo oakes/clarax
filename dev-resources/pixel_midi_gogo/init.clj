@@ -12,7 +12,7 @@
 
 (definterface Bridge
   (onload [])
-  (onaction [action-name data]))
+  (onaction [record action-name]))
 
 (defn -start [^pixel_midi_gogo.init app ^Stage stage]
   (let [root (FXMLLoader/load (io/resource "main.fxml"))
@@ -24,16 +24,17 @@
                    (try
                      (app/init)
                      (catch Exception e (.printStackTrace e) (throw e))))
-                 (onaction [this action-name data]
+                 (onaction [this record action-name]
                    (try
-                     (pmg-core/action action-name
-                       (edn/read-string {:readers app/readers} data))
+                     (pmg-core/receive-action! (edn/read-string {:readers app/readers} record)
+                       action-name)
                      (catch Exception e (.printStackTrace e) (throw e)))))]
-    (reset! pmg-core/*send-action-fn
-      (fn [action-name data]
+    (extend-type Object
+      pmg-core/ActionSendable
+      (send-action! [this action-name]
         (-> engine
             (.executeScript "window")
-            (.call "onAction" (into-array [action-name (pr-str data)])))))
+            (.call "onAction" (into-array [(pr-str this) action-name])))))
     (doto stage
       (.setTitle "PixelMidiGogo")
       (.setScene scene)
