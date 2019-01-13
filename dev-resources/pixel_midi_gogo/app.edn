@@ -22,9 +22,10 @@
 [View]
 :select
 [?event <- Event :data (= (:id %) :client-rect)]
-:insert
+:upsert
 [Canvas
  :parent "#game"
+ <-
  :value
  [:fill {:color "lightblue"}
   [:rect {:width 250 :height 250}
@@ -92,9 +93,10 @@
 [?items <<- TodoItem]
 [?input <- NewTodo]
 [?edit <- EditTodo]
-:insert
+:upsert
 [View
  :parent "#app"
+ <-
  :value [:div
          [:input {:value (:text ?input)
                   :on-change {:id :input}}]

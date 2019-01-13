@@ -44,14 +44,29 @@
 (defn edit
   ([fact new-args]
    (rules/retract! fact)
-   (rules/insert! (merge fact new-args)))
+   (insert (merge fact new-args)))
   ([session fact new-args]
    (if engine/*rule-context*
      (do (edit fact new-args) session)
      (-> session
          (rules/retract fact)
-         (rules/insert (merge fact new-args))
-         rules/fire-rules))))
+         (insert (merge fact new-args))))))
+
+(defn upsert
+  ([query fact new-args]
+   (or (some-> @*session
+               (rules/query query)
+               first
+               :?ret
+               (edit new-args))
+       (insert fact)))
+  ([session query fact new-args]
+   (or (some-> session
+               (rules/query query)
+               first
+               :?ret
+               ((partial edit session) new-args))
+       (insert session fact))))
 
 #?(:cljs (defn watch-files [files]
            (when-not js/COMPILED

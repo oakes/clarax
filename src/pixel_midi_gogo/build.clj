@@ -33,15 +33,17 @@
       (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] query))
     query))
 
+(defn transform-args [args]
+  (->> args
+       (map (juxt :key :val))
+       (into {})))
+
 (defn transform-insert-form [{:keys [record args]}]
   (list
     'pixel-midi-gogo.core/insert
     (list
       (symbol (str "map->" record))
-      (update
-        (->> args
-             (map (juxt :key :val))
-             (into {}))
+      (update (transform-args args)
         :timestamp
         #(or % '(pixel-midi-gogo.core/get-time))))))
 
@@ -52,9 +54,19 @@
   (list
     'pixel-midi-gogo.core/edit
     record
-    (->> args
-         (map (juxt :key :val))
-         (into {}))))
+    (transform-args args)))
+
+(defn transform-upsert-form [query {:keys [record args update-args]}]
+  (let [new-args (update (transform-args (concat args update-args))
+                   :timestamp
+                   #(or % '(pixel-midi-gogo.core/get-time)))]
+    (list
+      'pixel-midi-gogo.core/upsert
+      query
+      (list
+        (symbol (str "map->" record))
+        new-args)
+      new-args)))
 
 (defn build-query [{:keys [record args]}]
   (vec (cons
@@ -106,11 +118,17 @@
                                      (when (= type :select) block)))
                              (mapcat :forms)
                              vec)
+                upserts (->> right
+                             (keep (fn [[type block]]
+                                     (when (= type :upsert) block)))
+                             (mapcat :forms)
+                             vec)
                 queries (reduce-kv
                           (fn [v i form]
                             (conj v (select-form->query (str sym "-query-" i) form)))
                           []
-                          selects)
+                          (into selects upserts))
+                [select-queries upsert-queries] (split-at (count selects) queries)
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
@@ -118,6 +136,7 @@
                                  :insert (map transform-insert-form (:forms block))
                                  :delete (map transform-delete-form (:forms block))
                                  :update (map transform-update-form (:forms block))
+                                 :upsert (map transform-upsert-form upsert-queries (:forms block))
                                  :execute (:forms block)))
                              right)]]
       (cons (add-rule sym (concat left-side ['=>]
@@ -127,7 +146,7 @@
                               (seq selects)
                               (list
                                 (concat
-                                  (list 'let (vec (mapcat transform-select-form queries selects)))
+                                  (list 'let (vec (mapcat transform-select-form select-queries selects)))
                                   right-side))
                               :else
                               right-side)))
@@ -162,6 +181,11 @@
 (s/def ::update-form (s/cat
                        :record any?
                        :args (s/* ::pair)))
+(s/def ::upsert-form (s/cat
+                       :record symbol?
+                       :args (s/* ::pair)
+                       :binding (s/cat :arrow '#{<-})
+                       :update-args (s/* ::pair)))
 (s/def ::execute-form list?)
 
 (s/def ::when-block (s/cat
@@ -179,6 +203,9 @@
 (s/def ::update-block (s/cat
                         :header #{:update}
                         :forms (s/+ (s/spec ::update-form))))
+(s/def ::upsert-block (s/cat
+                        :header #{:upsert}
+                        :forms (s/+ (s/spec ::upsert-form))))
 (s/def ::execute-block (s/cat
                          :header #{:execute}
                          :forms (s/+ (s/spec ::execute-form))))
@@ -190,6 +217,7 @@
                               :insert ::insert-block
                               :delete ::delete-block
                               :update ::update-block
+                              :upsert ::upsert-block
                               :execute ::execute-block))))
 (s/def ::file (s/cat
                 :init-forms (s/* (s/spec ::insert-form))
