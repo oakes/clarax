@@ -11,17 +11,10 @@
 [?mouse :x (get ?opts "clientX") :y (get ?opts "clientY")]
 
 :when
-[View]
-:select
-[?event <- Event :data (= (:id %) :client-rect)]
-:execute
-(on-mount ?event)
-
-:when
 [?mouse <- Mouse]
 [View]
-:select
-[?event <- Event :data (= (:id %) :client-rect)]
+:execute-web
+[?rect <- (.getBoundingClientRect (.querySelector js/document "#game"))]
 :upsert
 [Canvas
  :parent "#game"
@@ -32,8 +25,8 @@
    [:fill {:color "red"}
     [:ellipse {:width 50
                :height 50
-               :x (- (:x ?mouse) (get-in ?event [:options "left"] 0))
-               :y (- (:y ?mouse) (get-in ?event [:options "top"] 0))}]]]]]
+               :x (- (:x ?mouse) (get ?rect "left"))
+               :y (- (:y ?mouse) (get ?rect "top"))}]]]]]
 
 :when
 [Event :data (= (:id %) :input), :options ?opts]

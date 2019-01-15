@@ -8,6 +8,6 @@
   pmg-core/ActionReceivable
   (receive-action! [this action-name]
     (case action-name
-      #?@(:cljs ["insert" (client/insert this)])
+      #?@(:cljs ["insert" (client/insert! this)])
       (pmg-core/receive-action* this action-name))))
 

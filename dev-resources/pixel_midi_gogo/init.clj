@@ -22,7 +22,7 @@
         bridge (reify Bridge
                  (onload [this]
                    (try
-                     (app/init)
+                     (app/init true)
                      (catch Exception e (.printStackTrace e) (throw e))))
                  (onaction [this record action-name]
                    (try

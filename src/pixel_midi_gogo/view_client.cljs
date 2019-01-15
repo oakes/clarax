@@ -1,5 +1,6 @@
 (ns pixel-midi-gogo.view-client
   (:require [pixel-midi-gogo.core :as pmg-core]
+            [pixel-midi-gogo.event :as event]
             [pixel-midi-gogo.utils :as utils]
             [rum.core :as rum]
             [clojure.walk :as walk]))
@@ -23,6 +24,12 @@
   [content view]
   content)
 
+(defn insert-event! [data e]
+  (let [opts (utils/obj->clj e 0)]
+    (pmg-core/send-action!
+      (event/map->Event {:data data :options opts})
+      "insert")))
+
 (defn update-attrs [x]
   (if (and (vector? x)
            (map? (second x)))
@@ -32,13 +39,13 @@
           (fn [new-attrs [k v]]
             (assoc new-attrs
               k (if (.startsWith (name k) "on-")
-                  (partial utils/insert-event v)
+                  (partial insert-event! v)
                   v)))
           {}
           attrs)))
     x))
 
-(defn insert [{:keys [parent value] :as view}]
+(defn insert! [{:keys [parent value] :as view}]
   (if-let [elem (.querySelector js/document parent)]
     (-> (walk/prewalk update-attrs value)
         (empty-comp view)

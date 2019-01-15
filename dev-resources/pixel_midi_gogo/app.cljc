@@ -8,7 +8,8 @@
                                         :clj [:refer [map->Canvas]])]
             [clara.rules :as rules]
             [clojure.string :as str]
-            #?@(:clj [[pixel-midi-gogo.build :as build]]
+            #?@(:clj [[clojure.edn :as edn]
+                      [pixel-midi-gogo.build :as build]]
                 :cljs [[cljs.tools.reader.edn :as edn]
                        [goog.object :as gobj]
                        [pixel-midi-gogo.utils :as utils]]))
@@ -24,8 +25,6 @@
 (defrecord EditTodo [text record timestamp])
 
 (defrecord Mouse [x y])
-
-(defrecord ClientRect [event])
 
 (def current-ns *ns*)
 
@@ -51,7 +50,6 @@
                 NewTodo map->NewTodo
                 EditTodo map->EditTodo
                 Mouse map->Mouse
-                ClientRect map->ClientRect
                 Canvas map->Canvas
                 'object (constantly nil)
                 'js (constantly nil)}))
@@ -64,20 +62,11 @@
             (extend-type default
               pmg-core/ActionSendable
               (send-action! [this action-name]
-                (.onaction js/window.java (pr-str this) action-name))))
-          (extend-type ClientRect
-            pmg-core/ActionReceivable
-            (receive-action! [this action-name]
-              (let [rect (.getBoundingClientRect (.querySelector js/document "#game"))]
-                (if (:event this)
-                  (utils/update-event (:event this) rect)
-                  (utils/insert-event {:id :client-rect} rect)))))])
+                (.onaction js/window.java (pr-str this) action-name))))])
 
-(defn on-mount [event]
-  (pmg-core/send-action! (->ClientRect event) "client-rect"))
-
-(defn init []
+(defn init [init?]
   (#?(:clj build/init-clj :cljs build/init-cljs)
+    init?
     #?(:cljs [pixel-midi-gogo.core
               pixel-midi-gogo.view
               pixel-midi-gogo.event
@@ -85,12 +74,13 @@
        :clj current-ns)
     ["dev-resources/pixel_midi_gogo/app.edn"]))
 
-#?(:cljs (if js/window.java
-           (set! (.-onload js/window)
-             (fn []
-               ; hack thanks to http://stackoverflow.com/a/28414332/1663009
-               (set! (.-status js/window) "MY-MAGIC-VALUE")
-               (set! (.-status js/window) "")
-               (.onload js/window.java)))
-           (init)))
+#?(:cljs (do
+           (when js/window.java
+             (set! (.-onload js/window)
+               (fn []
+                 ; hack thanks to http://stackoverflow.com/a/28414332/1663009
+                 (set! (.-status js/window) "MY-MAGIC-VALUE")
+                 (set! (.-status js/window) "")
+                 (.onload js/window.java))))
+           (init (nil? js/window.java))))
 

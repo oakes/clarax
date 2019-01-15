@@ -24,6 +24,6 @@
                 (remove-watch pmg-core/*session id))))))
       "unmount"
       (swap! pmg-core/*session (partial pmg-core/delete! this))
-      #?@(:cljs ["insert" (client/insert this)])
+      #?@(:cljs ["insert" (client/insert! this)])
       (pmg-core/receive-action* this action-name))))
 

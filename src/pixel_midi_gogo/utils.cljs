@@ -1,7 +1,5 @@
 (ns pixel-midi-gogo.utils
-  (:require [pixel-midi-gogo.core :as pmg-core]
-            [pixel-midi-gogo.event :refer [map->Event]]
-            [goog.object :as gobj]))
+  (:require [goog.object :as gobj]))
 
 (defn obj->clj [o level]
   (cond
@@ -18,16 +16,4 @@
       (.getKeys js/goog.object o))
     (#{"string" "number"} (goog/typeOf o))
     o))
-
-(defn insert-event [data e]
-  (let [opts (obj->clj e 0)]
-    (pmg-core/send-action!
-      (map->Event {:data data :options opts})
-      "insert")))
-
-(defn update-event [old-event e]
-  (let [opts (obj->clj e 0)]
-    (pmg-core/send-action!
-      {:old old-event :new {:options opts}}
-      "update")))
 

@@ -1,7 +1,8 @@
 (ns pixel-midi-gogo.core
   (:require [clara.rules :as rules]
             [clara.rules.engine :as engine]
-            [clara.rules.accumulators])
+            [clara.rules.accumulators]
+            #?(:cljs [pixel-midi-gogo.utils :as utils]))
   #?(:cljs (:import goog.net.XhrIo)))
 
 (defonce *session (atom nil))
@@ -66,10 +67,13 @@
                (update! new-args session))
        (insert! fact session))))
 
+(defmulti code->result identity)
+
 (defn receive-action* [this action-name]
   (case action-name
     "insert" (swap! *session (partial insert! this))
-    "update" (swap! *session (partial update! (:old this) (:new this)))))
+    "update" (swap! *session (partial update! (:old this) (:new this)))
+    #?@(:cljs ["eval" (pr-str (utils/obj->clj (code->result this) 0))])))
 
 (extend-type #?(:clj Object :cljs default)
   Insertable

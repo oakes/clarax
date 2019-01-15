@@ -19,7 +19,7 @@
   '[:when
     [?canvas <- Canvas]
     :execute
-    (pixel-midi-gogo.core/send-action! ?canvas "insert")])
+    [(pixel-midi-gogo.core/send-action! ?canvas "insert")]])
 
 (defn add-rule [name body]
   (let [rule (dsl/build-rule name body)]
@@ -67,6 +67,21 @@
         new-args)
       new-args
       query)))
+
+(defn transform-execute-block [{:keys [header forms]}]
+  (mapcat
+    (fn [{:keys [binding code]}]
+      [(or (:symbol binding) '_)
+       (case header
+         :execute code
+         :execute-web (list
+                        'edn/read-string
+                        (list 'pixel-midi-gogo.core/send-action! (pr-str code) "eval")))])
+    forms))
+
+(defn transform-execute-web-form [{:keys [binding code]}]
+  (list 'defmethod 'pixel-midi-gogo.core/code->result
+    (pr-str code) '[_] code))
 
 (defn build-query [{:keys [record args]}]
   (vec (cons
@@ -129,6 +144,13 @@
                           []
                           (into selects upserts))
                 [select-queries upsert-queries] (split-at (count selects) queries)
+                execute-blocks (->> right
+                                    (keep (fn [[type block]]
+                                            (when (= type :execute) block)))
+                                    vec)
+                bindings (concat
+                           (mapcat transform-select-form select-queries selects)
+                           (mapcat transform-execute-block execute-blocks))
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
@@ -137,19 +159,13 @@
                                  :delete (map transform-delete-form (:forms block))
                                  :update (map transform-update-form (:forms block))
                                  :upsert (map transform-upsert-form upsert-queries (:forms block))
-                                 :execute (:forms block)))
+                                 :execute []))
                              right)]]
       (cons (add-rule sym (concat left-side ['=>]
-                            (cond
-                              (empty? right-side)
-                              ['(do)]
-                              (seq selects)
-                              (list
-                                (concat
-                                  (list 'let (vec (mapcat transform-select-form select-queries selects)))
-                                  right-side))
-                              :else
-                              right-side)))
+                            (list
+                              (concat
+                                (list 'let (vec bindings))
+                                right-side))))
         queries))))
 
 (defn read-file [filename]
@@ -186,7 +202,9 @@
                        :args (s/* ::pair)
                        :binding (s/cat :arrow '#{<-})
                        :update-args (s/* ::pair)))
-(s/def ::execute-form list?)
+(s/def ::execute-form (s/cat
+                        :binding (s/? ::binding)
+                        :code list?))
 
 (s/def ::when-block (s/cat
                       :header #{:when}
@@ -207,7 +225,7 @@
                         :header #{:upsert}
                         :forms (s/+ (s/spec ::upsert-form))))
 (s/def ::execute-block (s/cat
-                         :header #{:execute}
+                         :header #{:execute :execute-web}
                          :forms (s/+ (s/spec ::execute-form))))
 
 (s/def ::rule (s/cat
@@ -223,29 +241,34 @@
                 :init-forms (s/* (s/spec ::insert-form))
                 :rules (s/* ::rule)))
 
-(defmacro init-cljs [nses files]
-  (let [parsed-files (mapv #(s/conform ::file (read-file %)) files)
-        init-forms (->> parsed-files
-                        (mapcat :init-forms)
-                        (mapv transform-insert-form))
-        rules (->> parsed-files
-                   (mapcat :rules)
-                   vec)
-        _ (binding [*cljs?* true]
-            (add-rules rules))
-        session (macros/sources-and-options->session-assembly-form
-                  (map #(list 'quote %) nses))]
-    `(do
-       (pixel-midi-gogo.core/watch-files ~files)
-       (->> ~session ~@init-forms rules/fire-rules
-            (reset! pixel-midi-gogo.core/*session)))))
+(defmacro init-cljs [init? nses files]
+  (binding [*cljs?* true]
+    (let [parsed-files (mapv #(s/conform ::file (read-file %)) files)
+          init-forms (->> parsed-files
+                          (mapcat :init-forms)
+                          (mapv transform-insert-form))
+          rules (->> parsed-files
+                     (mapcat :rules)
+                     vec)
+          execute-web-forms (->> rules
+                                 (mapcat :right)
+                                 (filter #(-> % second :header (= :execute-web)))
+                                 (mapcat #(-> % second :forms))
+                                 (map transform-execute-web-form))
+          _ (add-rules rules)
+          session (macros/sources-and-options->session-assembly-form
+                    (map #(list 'quote %) nses))
+          init-session (when init?
+                         `(do (pixel-midi-gogo.core/watch-files ~files)
+                              (->> ~session ~@init-forms rules/fire-rules (reset! pixel-midi-gogo.core/*session))))]
+      `(do ~@execute-web-forms ~init-session))))
 
 (extend-type java.util.Map
   compiler/IRuleSource
   (load-rules [m]
     [m]))
 
-(defn init-clj [ns files]
+(defn init-clj [_ ns files]
   (let [parsed-files (mapv #(s/conform ::file (read-file %)) files)
         init-forms (->> parsed-files
                         (mapcat :init-forms)
