@@ -2,7 +2,7 @@
  :deps {org.clojure/clojure {:mvn/version "1.10.0" :scope "provided"}
         com.cerner/clara-rules {:mvn/version "0.19.0"}
         rum {:mvn/version "0.11.3"}
-        http-kit {:mvn/version "2.2.0"}
+        http-kit {:mvn/version "2.3.0"}
         play-cljs {:mvn/version "1.2.0"}
         org.openjfx/javafx-base {:mvn/version "11.0.1" :scope "provided"}
         org.openjfx/javafx-fxml {:mvn/version "11.0.1" :scope "provided"}
