@@ -68,6 +68,7 @@
 (defn dev-start [opts]
   (.mkdirs (io/file "target" "public"))
   (start (-> #'handler
+             (wrap-resource "public")
              (wrap-reload))
     opts))
 

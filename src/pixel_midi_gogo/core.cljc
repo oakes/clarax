@@ -70,10 +70,11 @@
 (defmulti code->result identity)
 
 (defn receive-action* [this action-name]
-  (case action-name
-    "insert" (swap! *session (partial insert! this))
-    "update" (swap! *session (partial update! (:old this) (:new this)))
-    #?@(:cljs ["eval" (pr-str (utils/obj->clj (code->result this) 0))])))
+  (when @*session ;; TODO: change how init works so this isn't necessary?
+    (case action-name
+      "insert" (swap! *session (partial insert! this))
+      "update" (swap! *session (partial update! (:old this) (:new this)))
+      #?@(:cljs ["eval" (pr-str (utils/obj->clj (code->result this) 0))]))))
 
 (extend-type #?(:clj Object :cljs default)
   Insertable
