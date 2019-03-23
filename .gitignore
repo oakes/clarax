@@ -2,5 +2,7 @@ hs_err_pid*.log
 pom.xml
 pom.xml.asc
 target/
+dev-resources/public/*.js
+dev-resources/public/*.out
 .*
 !.gitignore

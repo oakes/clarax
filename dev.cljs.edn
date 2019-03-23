@@ -1,5 +1,5 @@
 {:main          pixel-midi-gogo.dev
  :optimizations :none
- :output-to     "target/public/main.js"
- :output-dir    "target/public/main.out"
+ :output-to     "dev-resources/public/main.js"
+ :output-dir    "dev-resources/public/main.out"
  :asset-path    "/main.out"}

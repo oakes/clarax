@@ -12,5 +12,5 @@
                               expound {:mvn/version "0.7.2"}
                               nightlight {:mvn/version "RELEASE"}
                               org.clojure/clojurescript {:mvn/version "1.10.520"}}
-                 :extra-paths ["target" "dev-resources"]}
+                 :extra-paths ["dev-resources"]}
            :prod {:extra-deps {leiningen {:mvn/version "2.9.0"}}}}}
