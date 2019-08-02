@@ -6,11 +6,14 @@
  :aliases {:jfx {:extra-deps {org.openjfx/javafx-base {:mvn/version "11.0.2" :scope "provided"}
                               org.openjfx/javafx-fxml {:mvn/version "11.0.2" :scope "provided"}
                               org.openjfx/javafx-web {:mvn/version "11.0.2" :scope "provided"}}
-                 :extra-paths ["classes"]}
+                 :extra-paths ["classes"]
+                 :main-opts ["jfx.clj"]}
            :dev {:extra-deps {com.bhauman/figwheel-main {:mvn/version "0.2.0"}
                               orchestra {:mvn/version "2018.12.06-2"}
                               expound {:mvn/version "0.7.2"}
                               nightlight {:mvn/version "RELEASE"}
                               org.clojure/clojurescript {:mvn/version "1.10.520"}}
-                 :extra-paths ["dev-resources"]}
-           :prod {:extra-deps {leiningen {:mvn/version "2.9.0"}}}}}
+                 :extra-paths ["dev-resources"]
+                 :main-opts ["dev.clj"]}
+           :prod {:extra-deps {leiningen {:mvn/version "2.9.0"}}
+                  :main-opts ["prod.clj"]}}}
