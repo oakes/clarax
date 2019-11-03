@@ -1,12 +1,18 @@
 ## Introduction
 
-PixelMidiGogo is dope.
+A library for managing state with [play-cljc](https://github.com/oakes/play-cljc).
+
+## Usage
+
+If you're using the latest version of play-cljc, it brings this library in automatically.
 
 ## Development
 
 * Install [the Clojure CLI tool](https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools)
-* To develop the web version with figwheel: `clj -A:dev`
-* To develop the desktop version: `clj -A:dev:jfx`
+* To develop the native version on each OS:
+  * `clj -A:dev:linux native`
+  * `clj -A:dev:macos native`
+  * `clj -A:dev:windows native`
 * To install the release version: `clj -A:prod install`
 
 ## Licensing
