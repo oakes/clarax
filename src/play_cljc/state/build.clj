@@ -1,9 +1,7 @@
 (ns play-cljc.state.build
   (:require [play-cljc.state]
             [clara.rules.compiler :as compiler]
-            [clara.macros :as macros]
             [clara.rules :as rules]
-            [cljs.env :as env]
             [clara.rules.dsl :as dsl]
             [clojure.java.io :as io]
             [clojure.tools.reader :as r]
@@ -12,20 +10,16 @@
             [expound.alpha :as expound]
             [clojure.walk :as walk]))
 
-(def ^:const ns-sym 'play-cljc.state)
-
-(def ^:dynamic *cljs?* false)
+(def ^:dynamic *cljs-fn* nil)
 
 (defn add-rule [name body]
   (let [rule (dsl/build-rule name body)]
-    (when *cljs?*
-      (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] rule))
+    (when *cljs-fn* (*cljs-fn* name rule))
     rule))
 
 (defn add-query [name body]
   (let [query (dsl/build-query name body)]
-    (when *cljs?*
-      (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym name] query))
+    (when *cljs-fn* (*cljs-fn* name query))
     query))
 
 (defn transform-args [args]
@@ -107,8 +101,7 @@
         (list 'clara.rules/query query)))))
 
 (defn add-rules [*session rules]
-  (when *cljs?*
-    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym] {}))
+  (when *cljs-fn* (*cljs-fn* {}))
   (flatten
     (for [i (range (count rules))
           :let [{:keys [left right]} (get rules i)
@@ -223,32 +216,18 @@
       (throw (ex-info (expound/expound-str spec content) {}))
       res)))
 
-(defmacro init-cljs [*session & forms]
-  (binding [*cljs?* true]
-    (let [parsed-forms (parse ::file forms)
-          init-forms (->> parsed-forms
-                          :init-forms
-                          (mapv transform-insert-form))
-          _ (->> parsed-forms
-                 :rules
-                 (add-rules *session)
-                 vec)
-          session (macros/sources-and-options->session-assembly-form [(list 'quote ns-sym)])]
-      `(->> ~session ~@init-forms rules/fire-rules (reset! ~*session)))))
-
 (extend-type java.util.Map
   compiler/IRuleSource
   (load-rules [m]
     [m]))
 
-(defmacro init-clj [*session & forms]
-  (let [parsed-forms (parse ::file forms)
-        init-forms (->> parsed-forms
-                        :init-forms
-                        (mapv transform-insert-form))
-        rules (->> parsed-forms
-                   :rules
-                   (add-rules *session)
-                   vec)]
-    `(->> ~rules compiler/mk-session ~@init-forms rules/fire-rules (reset! ~*session))))
+(defn forms->rules [*session forms]
+  (let [parsed-forms (parse ::file forms)]
+    {:init-forms (->> parsed-forms
+                      :init-forms
+                      (mapv transform-insert-form))
+     :rules (->> parsed-forms
+                 :rules
+                 (add-rules *session)
+                 vec)}))
 
