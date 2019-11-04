@@ -1,5 +1,5 @@
 {:paths ["src"]
- :deps {com.cerner/clara-rules {:mvn/version "0.19.0"}}
+ :deps {com.cerner/clara-rules {:mvn/version "0.20.0"}}
  :aliases {:dev {:extra-deps {dynadoc {:mvn/version "RELEASE"}
                               orchestra {:mvn/version "2018.12.06-2"}
                               org.lwjgl/lwjgl {:mvn/version "3.2.3"}
