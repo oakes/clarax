@@ -90,16 +90,6 @@
                 <- '(clara.rules.accumulators/max :timestamp :returns-fact true))
               :from (build-query form)])))
 
-(defn transform-select-form [*session query {:keys [binding] :as form}]
-  (list
-    (:symbol binding)
-    (list
-      (list 'comp :?ret 'first)
-      (list
-        'some->
-        (list 'deref *session)
-        (list 'clara.rules/query query)))))
-
 (defn build-queries [queries]
   (reduce
     (fn [m {:keys [binding] :as form}]
@@ -110,18 +100,13 @@
     {}
     queries))
 
-(defn build-rules [*session rules]
+(defn build-rules [rules]
   (when *cljs-fn* (*cljs-fn* {}))
   (reduce into []
     (for [i (range (count rules))
           :let [{:keys [left right]} (get rules i)
                 sym (symbol (str "rule-" i))
                 left-side (mapv transform-when-form (:forms left))
-                selects (->> right
-                             (keep (fn [[type block]]
-                                     (when (= type :select) block)))
-                             (mapcat :forms)
-                             vec)
                 upserts (->> right
                              (keep (fn [[type block]]
                                      (when (= type :upsert) block)))
@@ -131,15 +116,12 @@
                           (fn [v i form]
                             (conj v (select-form->query (str sym "-query-" i) form)))
                           []
-                          (into selects upserts))
-                [select-queries upsert-queries] (split-at (count selects) queries)
+                          upserts)
                 execute-blocks (->> right
                                     (keep (fn [[type block]]
                                             (when (= type :execute) block)))
                                     vec)
-                bindings (concat
-                           (mapcat (partial transform-select-form *session) select-queries selects)
-                           (mapcat transform-execute-block execute-blocks))
+                bindings (mapcat transform-execute-block execute-blocks)
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
@@ -147,7 +129,7 @@
                                  :insert (map transform-insert-form (:forms block))
                                  :delete (map transform-delete-form (:forms block))
                                  :update (map transform-update-form (:forms block))
-                                 :upsert (map transform-upsert-form upsert-queries (:forms block))
+                                 :upsert (map transform-upsert-form queries (:forms block))
                                  :execute []))
                              right)]]
       (cons (add-rule sym (concat left-side ['=>]
@@ -210,7 +192,6 @@
 (s/def ::rule (s/cat
                 :left ::when-block
                 :right (s/* (s/alt
-                              :select ::select-block
                               :insert ::insert-block
                               :delete ::delete-block
                               :update ::update-block
@@ -232,11 +213,11 @@
   (load-rules [m]
     [m]))
 
-(defn forms->rules [*session forms]
+(defn forms->rules [forms]
   (let [{:keys [insert-forms select-forms rules]} (parse ::file forms)]
     {:init-forms (->> insert-forms
                       :forms
                       (mapv transform-insert-form))
-     :rules (build-rules *session rules)
+     :rules (build-rules rules)
      :queries (build-queries (:forms select-forms))}))
 

@@ -4,18 +4,18 @@
             [clara.rules :as rules]
             [clara.rules.engine :as eng]))
 
-(defmacro defsession [var-name & forms]
-  (let [{:keys [init-forms rules queries]} (build/forms->rules var-name forms)
+(defmacro ->session [& forms]
+  (let [{:keys [init-forms rules queries]} (build/forms->rules forms)
         rules (into rules (vals queries))]
-    `(let [var# (def ~var-name (atom nil))]
+    `(do
        ~(cons 'do
           (for [[sym query] queries]
             `(def ~sym ~query)))
-       (->> ~rules compiler/mk-session ~@init-forms rules/fire-rules (reset! ~var-name))
-       var#)))
+       (->> ~rules compiler/mk-session ~@init-forms rules/fire-rules))))
 
 (defmacro query [session query & params]
-  `(-> (eng/query ~session ~query ~(apply hash-map params))
-       first
-       :?ret))
+  `(some-> ~session
+           (eng/query ~query ~(apply hash-map params))
+           first
+           :?ret))
 

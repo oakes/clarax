@@ -13,19 +13,19 @@
   ([key val]
    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym key] val)))
 
-(defmacro defsession [var-name & forms]
+(defmacro ->session [& forms]
   (binding [build/*cljs-fn* cljs-fn]
-    (let [{:keys [init-forms queries]} (build/forms->rules var-name forms)
+    (let [{:keys [init-forms queries]} (build/forms->rules forms)
           session (macros/sources-and-options->session-assembly-form [(list 'quote ns-sym)])]
-      `(let [var# (def ~var-name (atom nil))]
+      `(do
          ~(cons 'do
             (for [[sym query] queries]
               `(def ~sym ~query)))
-           (->> ~session ~@init-forms rules/fire-rules (reset! ~var-name))
-           var#))))
+           (->> ~session ~@init-forms rules/fire-rules)))))
 
 (defmacro query [session query & params]
-  `(-> (eng/query ~session ~query ~(apply hash-map params))
-       first
-       :?ret))
+  `(some-> ~session
+           (eng/query ~query ~(apply hash-map params))
+           first
+           :?ret))
 
