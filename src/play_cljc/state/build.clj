@@ -100,9 +100,19 @@
         (list 'deref *session)
         (list 'clara.rules/query query)))))
 
-(defn add-rules [*session rules]
+(defn build-queries [queries]
+  (reduce
+    (fn [m {:keys [binding] :as form}]
+      (let [sym (:symbol binding)]
+        (if (get m sym)
+          (throw (ex-info "Duplicate query name" {:query-name sym}))
+          (assoc m sym (select-form->query sym form)))))
+    {}
+    queries))
+
+(defn build-rules [*session rules]
   (when *cljs-fn* (*cljs-fn* {}))
-  (flatten
+  (reduce into []
     (for [i (range (count rules))
           :let [{:keys [left right]} (get rules i)
                 sym (symbol (str "rule-" i))
@@ -207,7 +217,8 @@
                               :upsert ::upsert-block
                               :execute ::execute-block))))
 (s/def ::file (s/cat
-                :init-forms (s/* (s/spec ::insert-form))
+                :insert-forms (s/? ::insert-block)
+                :select-forms (s/? ::select-block)
                 :rules (s/* ::rule)))
 
 (defn parse [spec content]
@@ -222,12 +233,10 @@
     [m]))
 
 (defn forms->rules [*session forms]
-  (let [parsed-forms (parse ::file forms)]
-    {:init-forms (->> parsed-forms
-                      :init-forms
+  (let [{:keys [insert-forms select-forms rules]} (parse ::file forms)]
+    {:init-forms (->> insert-forms
+                      :forms
                       (mapv transform-insert-form))
-     :rules (->> parsed-forms
-                 :rules
-                 (add-rules *session)
-                 vec)}))
+     :rules (build-rules *session rules)
+     :queries (build-queries (:forms select-forms))}))
 
