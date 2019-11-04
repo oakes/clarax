@@ -12,8 +12,11 @@
   ([key val]
    (swap! env/*compiler* assoc-in [:clara.macros/productions ns-sym key] val)))
 
-(defmacro init-state [*session & forms]
+(defmacro defsession [var-name & forms]
   (binding [build/*cljs-fn* cljs-fn]
-    (let [{:keys [init-forms rules]} (build/forms->rules *session forms)
+    (let [{:keys [init-forms]} (build/forms->rules var-name forms)
           session (macros/sources-and-options->session-assembly-form [(list 'quote ns-sym)])]
-      `(->> ~session ~@init-forms rules/fire-rules (reset! ~*session)))))
+      `(let [var# (def ~var-name (atom nil))]
+         (->> ~session ~@init-forms rules/fire-rules (reset! ~var-name))
+         var#))))
+

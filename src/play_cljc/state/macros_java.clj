@@ -3,7 +3,9 @@
             [clara.rules.compiler :as compiler]
             [clara.rules :as rules]))
 
-(defmacro init-state [*session & forms]
-  (let [{:keys [init-forms rules]} (build/forms->rules *session forms)]
-    `(->> ~rules compiler/mk-session ~@init-forms rules/fire-rules (reset! ~*session))))
+(defmacro defsession [var-name & forms]
+  (let [{:keys [init-forms rules]} (build/forms->rules var-name forms)]
+    `(let [var# (def ~var-name (atom nil))]
+       (->> ~rules compiler/mk-session ~@init-forms rules/fire-rules (reset! ~var-name))
+       var#)))
 
