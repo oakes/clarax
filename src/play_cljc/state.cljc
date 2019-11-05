@@ -40,3 +40,12 @@
      (->> (rules/retract session fact)
           (insert! (merge fact new-args))))))
 
+(defn query
+  ([session q]
+   (query session q {}))
+  ([session q params]
+   (some-> session
+           (engine/query q params)
+           first
+           :?ret)))
+

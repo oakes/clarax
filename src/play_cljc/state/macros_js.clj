@@ -1,8 +1,7 @@
 (ns play-cljc.state.macros-js
   (:require [play-cljc.state.build :as build]
             [clara.macros :as macros]
-            [clara.rules :as rules]
-            [clara.rules.engine :as eng]))
+            [clara.rules :as rules]))
 
 (def ^:private *productions (atom {}))
 
@@ -23,10 +22,4 @@
         rule (build/form->rule form)]
     (swap! *productions assoc sym rule)
     `(def ~sym ~rule)))
-
-(defmacro query [session query & params]
-  `(some-> ~session
-           (eng/query ~query ~(apply hash-map params))
-           first
-           :?ret))
 
