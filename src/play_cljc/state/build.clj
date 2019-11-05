@@ -10,18 +10,8 @@
             [expound.alpha :as expound]
             [clojure.walk :as walk]))
 
-(defn build-query [{:keys [record args]}]
-  (vec (cons
-         record
-         (map (fn [{:keys [key val]}]
-                (let [key (symbol (name key))]
-                  (if (list? val)
-                    (walk/prewalk-replace {'% key} val)
-                    (list '= key val))))
-           args))))
-
-(defn transform-when-form [{:keys [binding] :as form}]
-  (let [query (build-query form)]
+(defn transform-when-form [{:keys [binding record args]}]
+  (let [query (into [record] args)]
     (if-let [{:keys [symbol arrow]} binding]
       (case arrow
         <<- [symbol '<- '(clara.rules.accumulators/distinct)
@@ -29,48 +19,39 @@
         <- (vec (concat [symbol '<-] query)))
       query)))
 
-(defn select-form->query [{:keys [binding] :as form}]
+(defn select-form->query [{:keys [binding record args]}]
   (dsl/build-query (:symbol binding)
     (list [] ['?ret '<-
               (case (:arrow binding)
                 <<- '(clara.rules.accumulators/distinct)
                 <- '(clara.rules.accumulators/max :timestamp :returns-fact true))
-              :from (build-query form)])))
+              :from (into [record] args)])))
 
 (defn build-rule [{:keys [name left right]}]
   (dsl/build-rule name
     (concat
-      (map transform-when-form (:forms left))
+      (map transform-when-form left)
       ['=>]
-      (:forms right))))
+      right)))
 
 (s/def ::binding (s/cat
                    :symbol symbol?
                    :arrow '#{<- <<-}))
-(s/def ::pair (s/cat
-                :key keyword?
-                :val any?))
 
-(s/def ::when-form (s/cat
-                     :binding (s/? ::binding)
-                     :record symbol?
-                     :args (s/* ::pair)))
-(s/def ::select-form (s/cat
-                       :binding ::binding
-                       :record symbol?
-                       :args (s/* ::pair)))
+(s/def ::query-form (s/cat
+                      :binding ::binding
+                      :record symbol?
+                      :args (s/* any?)))
 
-(s/def ::when-block (s/cat
-                      :header #{:when}
-                      :forms (s/+ (s/spec ::when-form))))
-(s/def ::then-block (s/cat
-                      :header #{:then}
-                      :forms (s/+ list?)))
+(s/def ::left-side (s/+ (s/spec ::query-form)))
+
+(s/def ::right-side (s/+ list?))
 
 (s/def ::rule (s/cat
                 :name symbol?
-                :left ::when-block
-                :right ::then-block))
+                :left ::left-side
+                :split '#{=>}
+                :right ::right-side))
 
 (defn parse [spec content]
   (let [res (s/conform spec content)]
@@ -85,7 +66,7 @@
 
 (defn form->query [form]
   (->> form
-       (parse ::select-form)
+       (parse ::query-form)
        select-form->query))
 
 (defn form->rule [form]
