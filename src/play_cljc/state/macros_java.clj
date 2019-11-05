@@ -11,7 +11,7 @@
        ~(cons 'do
           (for [[sym query] queries]
             `(def ~sym ~query)))
-       (->> ~rules compiler/mk-session ~@init-forms rules/fire-rules))))
+       (-> ~rules compiler/mk-session ~@init-forms rules/fire-rules))))
 
 (defmacro query [session query & params]
   `(some-> ~session
