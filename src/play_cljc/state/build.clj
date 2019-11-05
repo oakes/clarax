@@ -189,7 +189,6 @@
                               :upsert ::upsert-block
                               :execute ::execute-block))))
 (s/def ::file (s/cat
-                :insert-forms (s/? ::insert-block)
                 :select-forms (s/? ::select-block)
                 :rules (s/* ::rule)))
 
@@ -205,10 +204,7 @@
     [m]))
 
 (defn forms->rules [forms]
-  (let [{:keys [insert-forms select-forms rules]} (parse ::file forms)]
-    {:init-forms (->> insert-forms
-                      :forms
-                      (mapv transform-insert-form))
-     :rules (build-rules rules)
+  (let [{:keys [select-forms rules]} (parse ::file forms)]
+    {:rules (build-rules rules)
      :queries (build-queries (:forms select-forms))}))
 

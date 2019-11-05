@@ -5,13 +5,13 @@
             [clara.rules.engine :as eng]))
 
 (defmacro ->session [& forms]
-  (let [{:keys [init-forms rules queries]} (build/forms->rules forms)
+  (let [{:keys [rules queries]} (build/forms->rules forms)
         rules (into rules (vals queries))]
     `(do
        ~(cons 'do
           (for [[sym query] queries]
             `(def ~sym ~query)))
-       (-> ~rules compiler/mk-session ~@init-forms rules/fire-rules))))
+       (compiler/mk-session ~rules))))
 
 (defmacro query [session query & params]
   `(some-> ~session

@@ -15,13 +15,13 @@
 
 (defmacro ->session [& forms]
   (binding [build/*cljs-fn* cljs-fn]
-    (let [{:keys [init-forms queries]} (build/forms->rules forms)
+    (let [{:keys [queries]} (build/forms->rules forms)
           session (macros/sources-and-options->session-assembly-form [(list 'quote ns-sym)])]
       `(do
          ~(cons 'do
             (for [[sym query] queries]
               `(def ~sym ~query)))
-           (-> ~session ~@init-forms rules/fire-rules)))))
+         ~session))))
 
 (defmacro query [session query & params]
   `(some-> ~session
