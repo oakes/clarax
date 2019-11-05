@@ -63,14 +63,14 @@
 (s/def ::when-block (s/cat
                       :header #{:when}
                       :forms (s/+ (s/spec ::when-form))))
-(s/def ::execute-block (s/cat
-                         :header #{:execute}
-                         :forms (s/+ list?)))
+(s/def ::then-block (s/cat
+                      :header #{:then}
+                      :forms (s/+ list?)))
 
 (s/def ::rule (s/cat
                 :name symbol?
                 :left ::when-block
-                :right ::execute-block))
+                :right ::then-block))
 
 (defn parse [spec content]
   (let [res (s/conform spec content)]
