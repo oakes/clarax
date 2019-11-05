@@ -57,12 +57,6 @@
       new-args
       query)))
 
-(defn transform-execute-block [{:keys [forms]}]
-  (mapcat
-    (fn [code]
-      ['_ code])
-    forms))
-
 (defn build-query [{:keys [record args]}]
   (vec (cons
          record
@@ -121,7 +115,6 @@
                                     (keep (fn [[type block]]
                                             (when (= type :execute) block)))
                                     vec)
-                bindings (mapcat transform-execute-block execute-blocks)
                 right-side (mapcat
                              (fn [[type block]]
                                (case type
@@ -133,10 +126,8 @@
                                  :execute []))
                              right)]]
       (cons (add-rule sym (concat left-side ['=>]
-                            (list
-                              (concat
-                                (list 'let (vec bindings))
-                                right-side))))
+                            (map :forms execute-blocks)
+                            right-side))
         queries))))
 
 (s/def ::binding (s/cat
