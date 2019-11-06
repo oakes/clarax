@@ -2,10 +2,6 @@
 
 A library for managing state with [play-cljc](https://github.com/oakes/play-cljc).
 
-## Usage
-
-If you're using the latest version of play-cljc, it brings this library in automatically.
-
 ## Development
 
 * Install [the Clojure CLI tool](https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools)
