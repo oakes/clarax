@@ -16,7 +16,8 @@
   (dynadoc/start {:port 5000, :dedupe-pref :cljs})
   (figwheel/-main "--build" "dev"))
 
-(require '[play-cljc.dev :as dev])
+(require '[play-cljc.dev :as dev]
+         '[play-cljc.gl.examples-state])
 
 (defmethod task "native"
   [_]
