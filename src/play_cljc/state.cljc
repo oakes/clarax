@@ -37,8 +37,8 @@
   ([session fact new-args]
    (if engine/*rule-context*
      (do (update! fact new-args) session)
-     (->> (rules/retract session fact)
-          (insert! (merge fact new-args))))))
+     (-> (rules/retract session fact)
+         (insert! (merge fact new-args))))))
 
 (defn query
   ([session q]
