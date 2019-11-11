@@ -10,6 +10,15 @@
             [expound.alpha :as expound]
             [clojure.walk :as walk]))
 
+(def *productions (atom {}))
+
+(defn add-production [sym prod]
+  (swap! *productions update sym (fn [existing-prod]
+                                   (when (and existing-prod
+                                              (not= existing-prod prod))
+                                     (println "WARNING:" sym "has been redefined"))
+                                   prod)))
+
 (defn transform-when-form [{:keys [binding record args]}]
   (let [query (into [record] args)]
     (if-let [{:keys [symbol arrow]} binding]

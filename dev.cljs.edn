@@ -1,4 +1,4 @@
-{:main          play-cljc.dev
+{:main          play-cljc.dev-state
  :optimizations :none
  :output-to     "dev-resources/dynadoc-extend/main.js"
  :output-dir    "dev-resources/dynadoc-extend/main.out"

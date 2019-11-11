@@ -7,8 +7,14 @@
   (compiler/mk-session rules-and-queries))
 
 (defmacro defquery [& form]
-  `(def ~(first form) ~(build/form->query form)))
+  (let [sym (first form)
+        query (build/form->query form)]
+    (build/add-production sym query)
+    `(def ~sym ~query)))
 
 (defmacro defrule [& form]
-  `(def ~(first form) ~(build/form->rule form)))
+  (let [sym (first form)
+        rule (build/form->rule form)]
+    (build/add-production sym rule)
+    `(def ~sym ~rule)))
 

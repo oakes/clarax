@@ -3,10 +3,8 @@
             [clara.macros :as macros]
             [clara.rules :as rules]))
 
-(def ^:private *productions (atom {}))
-
 (defmacro ->session [& rules-and-queries]
-  (-> @*productions
+  (-> @build/*productions
       (select-keys rules-and-queries)
       vals vec eval
       (macros/productions->session-assembly-form [])))
@@ -14,12 +12,14 @@
 (defmacro defquery [& form]
   (let [sym (first form)
         query (build/form->query form)]
-    (swap! *productions assoc sym query)
+    (binding [*out* (java.io.StringWriter.)]
+      (build/add-production sym query))
     `(def ~sym ~query)))
 
 (defmacro defrule [& form]
   (let [sym (first form)
         rule (build/form->rule form)]
-    (swap! *productions assoc sym rule)
+    (binding [*out* (java.io.StringWriter.)]
+      (build/add-production sym rule))
     `(def ~sym ~rule)))
 
