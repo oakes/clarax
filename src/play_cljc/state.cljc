@@ -7,15 +7,20 @@
   (when-not engine/*rule-context*
     (throw (ex-info "No session found. You must use the other arity of this function." {}))))
 
+(defn- inc-version [fact]
+  (if-let [*version (:*version fact)]
+    (assoc fact :version (swap! *version inc))
+    fact))
+
 (defn insert!
   ([fact]
    (check-for-context)
-   (rules/insert! fact))
+   (rules/insert! (inc-version fact)))
   ([session fact]
    (if engine/*rule-context*
      (do (insert! fact) session)
      (-> session
-         (rules/insert fact)
+         (rules/insert (inc-version fact))
          rules/fire-rules))))
 
 (defn delete!
