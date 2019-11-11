@@ -14,41 +14,50 @@
                :cljs [play-cljc.state.macros-js :refer-macros [->session defquery defrule]]))
   #?(:cljs (:require-macros [dynadoc.example :refer [defexample]])))
 
-(defrecord Rect [x y width height])
-(defrecord Game [width height])
+(defrecord Rect [x y width height version *version])
+(defrecord Game [width height version *version])
 
 (defquery get-rect <- Rect)
+(defquery get-rects <<- Rect)
+(defquery get-old-rects <<- Rect (< version @*version))
 
 (defrule right-boundary
   [?game <- Game]
-  [?rect <- Rect (> (+ x width) (:width ?game))]
+  [?rect <- Rect (> (+ x width) (:width ?game)) (= version @*version)]
   =>
-  (state/insert! (assoc ?rect :x (- (:width ?game) (:width ?rect)))))
+  (state/update! ?rect
+                 {:x (- (:width ?game) (:width ?rect))
+                  :version (swap! (:*version ?rect) inc)}))
 
 (defrule bottom-boundary
   [?game <- Game]
-  [?rect <- Rect (> (+ y height) (:height ?game))]
+  [?rect <- Rect (> (+ y height) (:height ?game)) (= version @*version)]
   =>
-  (state/insert! (assoc ?rect :y (- (:height ?game) (:height ?rect)))))
+  (state/update! ?rect
+                 {:y (- (:height ?game) (:height ?rect))
+                  :version (swap! (:*version ?rect) inc)}))
 
 (def *state (atom
-              (-> (->session get-rect right-boundary bottom-boundary)
-                  (state/insert! (->Rect 50 50 100 100)))))
+              (-> (->session get-rect get-rects get-old-rects right-boundary bottom-boundary)
+                  (state/insert! (->Rect 50 50 100 100 0 (atom 0))))))
 
 ;; rect
 
 (defn rect-example [game]
   (gl game disable (gl game CULL_FACE))
   (gl game disable (gl game DEPTH_TEST))
-  (swap! *state state/insert! (->Game (eu/get-width game) (eu/get-height game)))
+  (swap! *state state/insert! (->Game (eu/get-width game) (eu/get-height game) 0 (atom 0)))
   (let [*mouse-state (atom {})]
     (add-watch *mouse-state :mouse-moved
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
-                          (state/update! state
-                                         (state/query state get-rect)
-                                         (select-keys new-mouse-state [:x :y]))))))
+                          (let [fact (state/query state get-rect)
+                                state (state/update! state fact
+                                                     (merge
+                                                       (select-keys new-mouse-state [:x :y])
+                                                       {:version (swap! (:*version fact) inc)}))]
+                            (state/delete-all! state (state/query state get-old-rects)))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})
@@ -70,6 +79,7 @@
        (play-cljc.gl.example-utils/game-loop
          (fn rect-render [{:keys [entity] :as game}]
            (play-cljc.gl.example-utils/resize-example game)
+           (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state play-cljc.gl.examples-state/get-rects)))
            (let [{:keys [x y width height]} (play-cljc.state/query @play-cljc.gl.examples-state/*state play-cljc.gl.examples-state/get-rect)]
              (let [game-width (play-cljc.gl.example-utils/get-width game)
                    game-height (play-cljc.gl.example-utils/get-height game)]

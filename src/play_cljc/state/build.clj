@@ -24,7 +24,7 @@
     (list [] ['?ret '<-
               (case (:arrow binding)
                 <<- '(clara.rules.accumulators/distinct)
-                <- '(clara.rules.accumulators/max :timestamp :returns-fact true))
+                <- '(clara.rules.accumulators/max :version :returns-fact true))
               :from (into [record] args)])))
 
 (defn build-rule [{:keys [name left right]}]
