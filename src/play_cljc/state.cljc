@@ -29,11 +29,6 @@
          (rules/retract fact)
          rules/fire-rules))))
 
-(defn delete-all! [session facts]
-  (->> facts
-       (reduce rules/retract session)
-       rules/fire-rules))
-
 (defn update!
   ([fact new-args]
    (check-for-context)

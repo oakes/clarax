@@ -19,7 +19,6 @@
 
 (defquery get-rect <- Rect)
 (defquery get-rects <<- Rect)
-(defquery get-old-rects <<- Rect (< version @*version))
 
 (defrule right-boundary
   [?game <- Game]
@@ -37,8 +36,13 @@
                  {:y (- (:height ?game) (:height ?rect))
                   :version (swap! (:*version ?rect) inc)}))
 
+(defrule delete-old-rects
+  [?rect <- Rect (< version @*version)]
+  =>
+  (state/delete! ?rect))
+
 (def *state (atom
-              (-> (->session get-rect get-rects get-old-rects right-boundary bottom-boundary)
+              (-> (->session get-rect get-rects right-boundary bottom-boundary delete-old-rects)
                   (state/insert! (->Rect 50 50 100 100 0 (atom 0))))))
 
 ;; rect
@@ -52,12 +56,11 @@
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
-                          (let [fact (state/query state get-rect)
-                                state (state/update! state fact
-                                                     (merge
-                                                       (select-keys new-mouse-state [:x :y])
-                                                       {:version (swap! (:*version fact) inc)}))]
-                            (state/delete-all! state (state/query state get-old-rects)))))))
+                          (let [fact (state/query state get-rect)]
+                            (state/update! state fact
+                                           (merge
+                                             (select-keys new-mouse-state [:x :y])
+                                             {:version (swap! (:*version fact) inc)})))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})
