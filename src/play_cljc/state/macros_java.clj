@@ -13,14 +13,8 @@
   (build/->fact* name args))
 
 (defmacro defquery [& form]
-  (let [sym (first form)
-        query (build/form->query form)]
-    (build/add-production sym query)
-    `(def ~sym ~query)))
+  (build/defquery* form))
 
 (defmacro defrule [& form]
-  (let [sym (first form)
-        rule (build/form->rule form)]
-    (build/add-production sym rule)
-    `(def ~sym ~rule)))
+  (build/defrule* form))
 

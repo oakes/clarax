@@ -12,6 +12,7 @@
             [clojure.set :as set]))
 
 (def *productions (atom {}))
+(def *facts (atom {}))
 (def *production->facts (atom {}))
 
 (defn add-production [sym prod]
@@ -20,6 +21,13 @@
                                               (not= existing-prod prod))
                                      (println "WARNING:" sym "has been redefined"))
                                    prod)))
+
+(defn add-fact [sym fields]
+  (swap! *facts update sym (fn [existing-fact]
+                             (when (and existing-fact
+                                        (not= existing-fact fields))
+                               (println "WARNING:" sym "has been redefined"))
+                             fields)))
 
 (defn get-prod-names-for-fact [fact-name]
   (reduce-kv
@@ -45,10 +53,12 @@
 (defn add-delete-rules [fact-names productions]
   (reduce
     (fn [productions fact-name]
-      (conj productions
-            (dsl/build-rule (symbol (str 'delete- fact-name))
-              [['?fact '<- fact-name '(< version @*version)]
-               '=> '(play-cljc.state/delete! ?fact)])))
+      (if (contains? @*facts fact-name)
+        (conj productions
+              (dsl/build-rule (symbol (str 'delete- fact-name))
+                [['?fact '<- fact-name '(< version @*version)]
+                 '=> '(play-cljc.state/delete! ?fact)]))
+        productions))
     productions
     fact-names))
 
@@ -68,6 +78,7 @@
 (def ^:const reserved-fields '[version *version])
 
 (defn deffact* [name fields opts]
+  (add-fact name fields)
   (let [invalid-fields (set/intersection (set reserved-fields) (set fields))
         fields (into reserved-fields fields)]
     (when (seq invalid-fields)
@@ -77,27 +88,32 @@
     `(defrecord ~name ~fields ~@opts)))
 
 (defn ->fact* [name args]
+  (when-not (contains? @*facts name)
+    (throw (ex-info (str name " was not defined with deffact (or possibly was defined after ->fact is called)") {})))
   `(~(symbol (str '-> name)) 0 (atom 0) ~@args))
 
 (defn transform-when-form [{:keys [binding record args]}]
-  (let [query (-> [record]
-                  (into args)
-                  (into ['(= version @*version)]))]
-    (if-let [{:keys [symbol arrow]} binding]
-      (case arrow
-        <<- [symbol '<- '(clara.rules.accumulators/distinct)
-             :from query]
-        <- (vec (concat [symbol '<-] query)))
+  (let [fact? (contains? @*facts record)
+        query (cond-> (into [record] args)
+                      fact?
+                      (into ['(= version @*version)]))]
+    (if-let [sym (:symbol binding)]
+      (if (and fact? (= (:arrow binding) '<-))
+        (vec (concat [sym '<-] query))
+        [sym '<- '(clara.rules.accumulators/distinct)
+         :from query])
       query)))
 
 (defn select-form->query [{:keys [binding record args]}]
-  (swap! *production->facts assoc (:symbol binding) #{record})
-  (dsl/build-query (:symbol binding)
-    (list [] ['?ret '<-
-              (case (:arrow binding)
-                <<- '(clara.rules.accumulators/distinct)
-                <- '(clara.rules.accumulators/max :version :returns-fact true))
-              :from (into [record] args)])))
+  (let [sym (:symbol binding)]
+    (swap! *production->facts assoc sym #{record})
+    (dsl/build-query sym
+      (list [] ['?ret '<-
+                (if (and (contains? @*facts record)
+                         (= (:arrow binding) '<-))
+                  '(clara.rules.accumulators/max :version :returns-fact true)
+                  '(clara.rules.accumulators/distinct))
+                :from (into [record] args)]))))
 
 (defn build-rule [{:keys [name left right]}]
   (swap! *production->facts assoc name (set (map :record left)))
@@ -142,8 +158,20 @@
        (parse ::query-form)
        select-form->query))
 
+(defn defquery* [form]
+  (let [sym (first form)
+        query (form->query form)]
+    (add-production sym query)
+    `(def ~sym ~query)))
+
 (defn form->rule [form]
   (->> form
        (parse ::rule)
        build-rule))
+
+(defn defrule* [form]
+  (let [sym (first form)
+        rule (form->rule form)]
+    (add-production sym rule)
+    `(def ~sym ~rule)))
 

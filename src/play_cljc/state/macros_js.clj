@@ -13,19 +13,14 @@
   (build/->fact* name args))
 
 (defmacro deffact [name fields & opts]
-  (build/deffact* name fields opts))
+  (binding [*out* (java.io.StringWriter.)]
+    (build/deffact* name fields opts)))
 
 (defmacro defquery [& form]
-  (let [sym (first form)
-        query (build/form->query form)]
-    (binding [*out* (java.io.StringWriter.)]
-      (build/add-production sym query))
-    `(def ~sym ~query)))
+  (binding [*out* (java.io.StringWriter.)]
+    (build/defquery* form)))
 
 (defmacro defrule [& form]
-  (let [sym (first form)
-        rule (build/form->rule form)]
-    (binding [*out* (java.io.StringWriter.)]
-      (build/add-production sym rule))
-    `(def ~sym ~rule)))
+  (binding [*out* (java.io.StringWriter.)]
+    (build/defrule* form)))
 
