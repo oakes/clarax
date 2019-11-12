@@ -8,7 +8,8 @@
             [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
-            [clojure.walk :as walk]))
+            [clojure.walk :as walk]
+            [clojure.set :as set]))
 
 (def *productions (atom {}))
 
@@ -18,6 +19,20 @@
                                               (not= existing-prod prod))
                                      (println "WARNING:" sym "has been redefined"))
                                    prod)))
+
+(def ^:const reserved-fields '[version *version])
+
+(defn deffact* [name fields opts]
+  (let [invalid-fields (set/intersection (set reserved-fields) (set fields))
+        fields (into reserved-fields fields)
+        positional-ctor (symbol (str '-> name))]
+    (when (seq invalid-fields)
+      (throw (ex-info (str name " may not contain the following reserved fields: " invalid-fields)
+                      {:name name
+                       :invalid-fields invalid-fields})))
+    `(let [ret# (defrecord ~name ~fields ~@opts)]
+       (def ~positional-ctor (partial ~positional-ctor 0 (atom 0)))
+       ret#)))
 
 (defn transform-when-form [{:keys [binding record args]}]
   (let [query (into [record] args)]

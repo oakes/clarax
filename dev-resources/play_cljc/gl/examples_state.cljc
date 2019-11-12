@@ -10,12 +10,12 @@
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
             #?(:clj [dynadoc.example :refer [defexample]])
-            #?(:clj  [play-cljc.state.macros-java :refer [->session defquery defrule]]
-               :cljs [play-cljc.state.macros-js :refer-macros [->session defquery defrule]]))
+            #?(:clj  [play-cljc.state.macros-java :refer [->session deffact defquery defrule]]
+               :cljs [play-cljc.state.macros-js :refer-macros [->session deffact defquery defrule]]))
   #?(:cljs (:require-macros [dynadoc.example :refer [defexample]])))
 
-(defrecord Rect [x y width height version *version])
-(defrecord Game [width height version *version])
+(deffact Rect [x y width height])
+(deffact Game [width height])
 
 (defquery get-rect <- Rect)
 (defquery get-rects <<- Rect)
@@ -39,14 +39,14 @@
 
 (def *state (atom
               (-> (->session get-rect get-rects right-boundary bottom-boundary delete-old-rects)
-                  (state/insert! (->Rect 50 50 100 100 0 (atom 0))))))
+                  (state/insert! (->Rect 50 50 100 100)))))
 
 ;; rect
 
 (defn rect-example [game]
   (gl game disable (gl game CULL_FACE))
   (gl game disable (gl game DEPTH_TEST))
-  (swap! *state state/insert! (->Game (eu/get-width game) (eu/get-height game) 0 (atom 0)))
+  (swap! *state state/insert! (->Game (eu/get-width game) (eu/get-height game)))
   (let [*mouse-state (atom {})]
     (add-watch *mouse-state :mouse-moved
                (fn [_ _ _ new-mouse-state]

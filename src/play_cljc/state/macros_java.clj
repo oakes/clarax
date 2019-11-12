@@ -6,6 +6,9 @@
 (defn ->session [& rules-and-queries]
   (compiler/mk-session rules-and-queries))
 
+(defmacro deffact [name fields & opts]
+  (build/deffact* name fields opts))
+
 (defmacro defquery [& form]
   (let [sym (first form)
         query (build/form->query form)]

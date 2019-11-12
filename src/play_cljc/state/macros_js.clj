@@ -9,6 +9,9 @@
       vals vec eval
       (macros/productions->session-assembly-form [])))
 
+(defmacro deffact [name fields & opts]
+  (build/deffact* name fields opts))
+
 (defmacro defquery [& form]
   (let [sym (first form)
         query (build/form->query form)]
