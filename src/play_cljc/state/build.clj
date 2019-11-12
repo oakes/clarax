@@ -75,6 +75,19 @@
          [])
        (add-delete-rules fact-names)))
 
+(defn get-fact-queries [fact-names]
+  (reduce
+    (fn [m fact-name]
+      (if (contains? @*facts fact-name)
+        (assoc m fact-name
+               (dsl/build-query (symbol (str 'get- fact-name))
+                 (list [] ['?ret '<-
+                           '(clara.rules.accumulators/max :version :returns-fact true)
+                           :from [fact-name]])))
+        m))
+    {}
+    fact-names))
+
 (def ^:const reserved-fields '[version *version])
 
 (defn deffact* [name fields opts]

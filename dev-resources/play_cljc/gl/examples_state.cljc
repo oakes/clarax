@@ -10,14 +10,13 @@
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
             #?(:clj [dynadoc.example :refer [defexample]])
-            #?(:clj  [play-cljc.state.macros-java :refer [->session ->fact deffact defquery defrule]]
-               :cljs [play-cljc.state.macros-js :refer-macros [->session ->fact deffact defquery defrule]]))
+            #?(:clj  [play-cljc.state.macros-java :refer [->state ->fact deffact defquery defrule]]
+               :cljs [play-cljc.state.macros-js :refer-macros [->state ->fact deffact defquery defrule]]))
   #?(:cljs (:require-macros [dynadoc.example :refer [defexample]])))
 
 (deffact Rect [x y width height])
 (deffact Game [width height])
 
-(defquery get-rect <- Rect)
 (defquery get-rects <<- Rect)
 
 (defrule right-boundary
@@ -33,7 +32,7 @@
   (state/update! ?rect {:y (- (:height ?game) (:height ?rect))}))
 
 (def *state (atom
-              (-> (->session Rect Game)
+              (-> (->state Rect Game)
                   (state/insert! (->fact Rect 50 50 100 100)))))
 
 ;; rect
@@ -47,13 +46,16 @@
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
-                          (let [fact (state/query state get-rect)]
+                          (let [fact (state/query-fact state Rect)]
                             (state/update! state fact (select-keys new-mouse-state [:x :y])))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})
        (c/compile game)
        (assoc game :entity)))
+
+(defn get-rect [state]
+  (state/query-fact state Rect))
 
 (defexample play-cljc.state/rect-example
   {:with-card card
@@ -71,7 +73,7 @@
          (fn rect-render [{:keys [entity] :as game}]
            (play-cljc.gl.example-utils/resize-example game)
            (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state play-cljc.gl.examples-state/get-rects)))
-           (let [{:keys [x y width height]} (play-cljc.state/query @play-cljc.gl.examples-state/*state play-cljc.gl.examples-state/get-rect)]
+           (let [{:keys [x y width height]} (play-cljc.gl.examples-state/get-rect @play-cljc.gl.examples-state/*state)]
              (let [game-width (play-cljc.gl.example-utils/get-width game)
                    game-height (play-cljc.gl.example-utils/get-height game)]
                focus))

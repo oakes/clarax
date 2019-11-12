@@ -16,41 +16,49 @@
   ([fact]
    (check-for-context)
    (rules/insert! (inc-version fact)))
-  ([session fact]
+  ([state fact]
    (if engine/*rule-context*
-     (do (insert! fact) session)
-     (-> session
-         (rules/insert (inc-version fact))
-         rules/fire-rules))))
+     (do (insert! fact) state)
+     (update state :session (fn [session]
+                              (-> session
+                                  (rules/insert (inc-version fact))
+                                  rules/fire-rules))))))
 
 (defn delete!
   ([fact]
    (check-for-context)
    (rules/retract! fact))
-  ([session fact]
+  ([state fact]
    (if engine/*rule-context*
-     (do (delete! fact) session)
-     (-> session
-         (rules/retract fact)
-         rules/fire-rules))))
+     (do (delete! fact) state)
+     (update state :session (fn [session]
+                              (-> session
+                                  (rules/retract fact)
+                                  rules/fire-rules))))))
 
 (defn update!
   ([fact new-args]
    (check-for-context)
    (rules/retract! fact)
    (insert! (merge fact new-args)))
-  ([session fact new-args]
+  ([state fact new-args]
    (if engine/*rule-context*
-     (do (update! fact new-args) session)
-     (-> (rules/retract session fact)
+     (do (update! fact new-args) state)
+     (-> state
+         (delete! fact)
          (insert! (merge fact new-args))))))
 
 (defn query
-  ([session q]
-   (query session q {}))
-  ([session q params]
-   (some-> session
+  ([state q]
+   (query state q {}))
+  ([state q params]
+   (some-> state
+           :session
            (engine/query q params)
            first
            :?ret)))
+
+(defn query-fact [state fact-name]
+  (query state (or (get (:queries state) fact-name)
+                   (throw (ex-info (str "Query for " fact-name " not found") {})))))
 

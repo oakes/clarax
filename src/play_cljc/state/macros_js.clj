@@ -3,11 +3,13 @@
             [clara.macros :as macros]
             [clara.rules :as rules]))
 
-(defmacro ->session [& fact-names]
-  (-> fact-names
-      build/get-productions-for-facts
-      eval
-      (macros/productions->session-assembly-form [])))
+(defmacro ->state [& fact-names]
+  (let [productions (build/get-productions-for-facts fact-names)
+        fact-queries (build/get-fact-queries fact-names)]
+    {:session (-> (into productions (vals fact-queries))
+                  eval
+                  (macros/productions->session-assembly-form []))
+     :queries fact-queries}))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))

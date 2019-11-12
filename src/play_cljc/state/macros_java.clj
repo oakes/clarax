@@ -3,8 +3,11 @@
             [clara.rules.compiler :as compiler]
             [clara.rules :as rules]))
 
-(defmacro ->session [& fact-names]
-  `(compiler/mk-session ~(build/get-productions-for-facts fact-names)))
+(defmacro ->state [& fact-names]
+  (let [productions (build/get-productions-for-facts fact-names)
+        fact-queries (build/get-fact-queries fact-names)]
+    {:session `(compiler/mk-session ~(into productions (vals fact-queries)))
+     :queries fact-queries}))
 
 (defmacro deffact [name fields & opts]
   (build/deffact* name fields opts))
