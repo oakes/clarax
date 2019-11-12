@@ -3,11 +3,14 @@
             [clara.macros :as macros]
             [clara.rules :as rules]))
 
-(defmacro ->session [& rules-and-queries]
-  (-> @build/*productions
-      (select-keys rules-and-queries)
-      vals vec eval
+(defmacro ->session [& fact-names]
+  (-> fact-names
+      build/get-productions-for-facts
+      eval
       (macros/productions->session-assembly-form [])))
+
+(defmacro ->fact [name & args]
+  (build/->fact* name args))
 
 (defmacro deffact [name fields & opts]
   (build/deffact* name fields opts))

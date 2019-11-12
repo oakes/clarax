@@ -12,6 +12,7 @@
             [clojure.set :as set]))
 
 (def *productions (atom {}))
+(def *production->facts (atom {}))
 
 (defn add-production [sym prod]
   (swap! *productions update sym (fn [existing-prod]
@@ -20,22 +21,68 @@
                                      (println "WARNING:" sym "has been redefined"))
                                    prod)))
 
+(defn get-prod-names-for-fact [fact-name]
+  (reduce-kv
+    (fn [prods prod-name facts]
+      (if (contains? facts fact-name)
+        (conj prods prod-name)
+        prods))
+    #{}
+    @*production->facts))
+
+(defn find-missing-facts [fact-names prod-names]
+  (let [required-fact-names (reduce
+                              (fn [required prod-name]
+                                (into required (get @*production->facts prod-name)))
+                              #{}
+                              prod-names)
+        missing-fact-names (set/difference required-fact-names (set fact-names))]
+    (when (seq missing-fact-names)
+      (throw (ex-info (str "You must pass the following fact names to ->session: " missing-fact-names)
+                      {:missing-facts missing-fact-names}))))
+  prod-names)
+
+(defn add-delete-rules [fact-names productions]
+  (reduce
+    (fn [productions fact-name]
+      (conj productions
+            (dsl/build-rule (symbol (str 'delete- fact-name))
+              [['?fact '<- fact-name '(< version @*version)]
+               '=> '(play-cljc.state/delete! ?fact)])))
+    productions
+    fact-names))
+
+(defn get-productions-for-facts [fact-names]
+  (->> fact-names
+       (reduce
+         (fn [prod-names fact-name]
+           (into prod-names (get-prod-names-for-fact fact-name)))
+         #{})
+       (find-missing-facts fact-names)
+       (reduce
+         (fn [prods prod-name]
+           (conj prods (get @*productions prod-name)))
+         [])
+       (add-delete-rules fact-names)))
+
 (def ^:const reserved-fields '[version *version])
 
 (defn deffact* [name fields opts]
   (let [invalid-fields (set/intersection (set reserved-fields) (set fields))
-        fields (into reserved-fields fields)
-        positional-ctor (symbol (str '-> name))]
+        fields (into reserved-fields fields)]
     (when (seq invalid-fields)
       (throw (ex-info (str name " may not contain the following reserved fields: " invalid-fields)
                       {:name name
                        :invalid-fields invalid-fields})))
-    `(let [ret# (defrecord ~name ~fields ~@opts)]
-       (def ~positional-ctor (partial ~positional-ctor 0 (atom 0)))
-       ret#)))
+    `(defrecord ~name ~fields ~@opts)))
+
+(defn ->fact* [name args]
+  `(~(symbol (str '-> name)) 0 (atom 0) ~@args))
 
 (defn transform-when-form [{:keys [binding record args]}]
-  (let [query (into [record] args)]
+  (let [query (-> [record]
+                  (into args)
+                  (into ['(= version @*version)]))]
     (if-let [{:keys [symbol arrow]} binding]
       (case arrow
         <<- [symbol '<- '(clara.rules.accumulators/distinct)
@@ -44,6 +91,7 @@
       query)))
 
 (defn select-form->query [{:keys [binding record args]}]
+  (swap! *production->facts assoc (:symbol binding) #{record})
   (dsl/build-query (:symbol binding)
     (list [] ['?ret '<-
               (case (:arrow binding)
@@ -52,6 +100,7 @@
               :from (into [record] args)])))
 
 (defn build-rule [{:keys [name left right]}]
+  (swap! *production->facts assoc name (set (map :record left)))
   (dsl/build-rule name
     (concat
       (map transform-when-form left)
