@@ -9,25 +9,11 @@
     (build/deffact* name fields opts)))
 
 (defmacro ->state [& body]
-  (binding [build/*rules* (atom {})
-            build/*queries* (atom {})
-            build/*facts* (atom #{})]
-    (run! eval body)
-    (let [{:keys [productions queries]} (build/get-state)]
-      {:session (-> productions
-                    eval
-                    (macros/productions->session-assembly-form []))
-       :queries queries})))
-
-(defmacro ->query [& form]
-  (binding [build/*macro-name* (first &form)
-            *out* (java.io.StringWriter.)]
-    (build/->query* form)))
-
-(defmacro ->rule [& form]
-  (binding [build/*macro-name* (first &form)
-            *out* (java.io.StringWriter.)]
-    (build/->rule* form)))
+  (let [{:keys [productions queries]} (build/get-state body)]
+    {:session (-> productions
+                  eval
+                  (macros/productions->session-assembly-form []))
+     :queries queries}))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))

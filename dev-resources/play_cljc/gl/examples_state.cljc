@@ -10,8 +10,8 @@
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
             #?(:clj [dynadoc.example :refer [defexample]])
-            #?(:clj  [play-cljc.state.macros-java :refer [deffact ->state ->query ->rule ->fact]]
-               :cljs [play-cljc.state.macros-js :refer-macros [deffact ->state ->query ->rule ->fact]]))
+            #?(:clj  [play-cljc.state.macros-java :refer [deffact ->state ->fact]]
+               :cljs [play-cljc.state.macros-js :refer-macros [deffact ->state ->fact]]))
   #?(:cljs (:require-macros [dynadoc.example :refer [defexample]])))
 
 (deffact Rect [x y width height])
@@ -20,19 +20,20 @@
 (def *state
   (atom
     (->state
-      (->query get-rects <<- Rect)
+      [:query get-rects
+       <<- Rect]
 
-      (->rule right-boundary
-        [?game <- Game]
-        [?rect <- Rect (> (+ x width) (:width ?game))]
-        =>
-        (state/update! ?rect {:x (- (:width ?game) (:width ?rect))}))
+      [:rule right-boundary
+       [?game <- Game]
+       [?rect <- Rect (> (+ x width) (:width ?game))]
+       =>
+       (state/update! ?rect {:x (- (:width ?game) (:width ?rect))})]
 
-      (->rule bottom-boundary
-        [?game <- Game]
-        [?rect <- Rect (> (+ y height) (:height ?game))]
-        =>
-        (state/update! ?rect {:y (- (:height ?game) (:height ?rect))})))))
+      [:rule bottom-boundary
+       [?game <- Game]
+       [?rect <- Rect (> (+ y height) (:height ?game))]
+       =>
+       (state/update! ?rect {:y (- (:height ?game) (:height ?rect))})])))
 
 (swap! *state state/insert! (->fact Rect 50 50 100 100))
 

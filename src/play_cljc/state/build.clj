@@ -11,10 +11,49 @@
             [clojure.walk :as walk]
             [clojure.set :as set]))
 
-(def ^:dynamic *rules* nil)
-(def ^:dynamic *queries* nil)
 (def ^:dynamic *facts* nil)
 (def ^:dynamic *macro-name* nil)
+
+(s/def ::query-form (s/cat
+                      :symbol symbol?
+                      :arrow '#{<- <<-}
+                      :record symbol?
+                      :args (s/* any?)))
+
+(s/def ::left-side (s/+ (s/spec ::query-form)))
+
+(s/def ::right-side (s/+ list?))
+
+(s/def ::rule (s/cat
+                :header #{:rule}
+                :symbol symbol?
+                :left ::left-side
+                :split '#{=>}
+                :right ::right-side))
+
+(s/def ::query (s/cat
+                 :header #{:query}
+                 :symbol symbol?
+                 :arrow '#{<- <<-}
+                 :record symbol?
+                 :args (s/* any?)))
+
+(s/def ::body (s/coll-of (s/or :query ::query
+                               :rule ::rule)))
+
+(defn parse [spec content]
+  (let [res (s/conform spec content)]
+    (if (= ::s/invalid res)
+      (throw (ex-info (expound/expound-str spec content) {}))
+      res)))
+
+(defn parse-body [body]
+  (parse ::body body))
+
+(extend-type java.util.Map
+  compiler/IRuleSource
+  (load-rules [m]
+    [m]))
 
 (defn get-delete-rules [fact-names]
   (reduce
@@ -25,16 +64,6 @@
                '=> '(play-cljc.state/delete! ?fact)])))
     []
     fact-names))
-
-(defn get-rules []
-  (-> @*rules* vals vec))
-
-(defn get-queries []
-  (reduce-kv
-    (fn [m k v]
-      (assoc m (list 'quote k) v))
-    {}
-    @*queries*))
 
 (defn get-fact-queries [fact-names]
   (reduce
@@ -47,17 +76,54 @@
     {}
     fact-names))
 
-(defn get-state []
-  (let [fact-names @*facts*
-        fact-queries (get-fact-queries fact-names)
-        queries (get-queries)
-        delete-rules (get-delete-rules fact-names)
-        productions (-> (get-rules)
-                        (into delete-rules)
-                        (into (vals queries))
-                        (into (vals fact-queries)))]
-    {:productions productions
-     :queries (merge queries fact-queries)}))
+(defn transform-when-form [{:keys [symbol arrow record args]}]
+  (swap! *facts* conj record)
+  (let [query (-> (into [record] args)
+                  (into ['(= version @*version)]))]
+    (if (= arrow '<-)
+      (vec (concat [symbol '<-] query))
+      [symbol '<- '(clara.rules.accumulators/distinct)
+       :from query])))
+
+(defn select-form->query [{:keys [symbol arrow record args]}]
+  (swap! *facts* conj record)
+  (dsl/build-query symbol
+    (list [] ['?ret '<-
+              (if (= arrow '<-)
+                '(clara.rules.accumulators/max :version :returns-fact true)
+                '(clara.rules.accumulators/distinct))
+              :from (into [record] args)])))
+
+(defn build-rule [{:keys [symbol left right]}]
+  (dsl/build-rule symbol
+    (concat
+      (map transform-when-form left)
+      ['=>]
+      right)))
+
+(defn get-state [body]
+  (binding [*facts* (atom #{})]
+    (let [*queries (volatile! {})
+          *rules (volatile! {})
+          parsed-body (parse-body body)
+          _ (doseq [[kind prod] parsed-body]
+              (case kind
+                :query (vswap! *queries assoc (:symbol prod) (select-form->query prod))
+                :rule (vswap! *rules assoc (:symbol prod) (build-rule prod))))
+          fact-names @*facts*
+          fact-queries (get-fact-queries fact-names)
+          queries (reduce-kv
+                    (fn [m k v]
+                      (assoc m (list 'quote k) v))
+                    {}
+                    @*queries)
+          delete-rules (get-delete-rules fact-names)
+          productions (-> (vec (vals @*rules))
+                          (into delete-rules)
+                          (into (vals queries))
+                          (into (vals fact-queries)))]
+      {:productions productions
+       :queries (merge queries fact-queries)})))
 
 (def ^:const reserved-fields '[version *version])
 
@@ -72,84 +138,4 @@
 
 (defn ->fact* [name args]
   `(~(symbol (str '-> name)) 0 (atom 0) ~@args))
-
-(defn transform-when-form [{:keys [binding record args]}]
-  (swap! *facts* conj record)
-  (let [query (-> (into [record] args)
-                  (into ['(= version @*version)]))]
-    (if-let [sym (:symbol binding)]
-      (if (= (:arrow binding) '<-)
-        (vec (concat [sym '<-] query))
-        [sym '<- '(clara.rules.accumulators/distinct)
-         :from query])
-      query)))
-
-(defn select-form->query [{:keys [binding record args]}]
-  (swap! *facts* conj record)
-  (let [sym (:symbol binding)]
-    (dsl/build-query sym
-      (list [] ['?ret '<-
-                (if (= (:arrow binding) '<-)
-                  '(clara.rules.accumulators/max :version :returns-fact true)
-                  '(clara.rules.accumulators/distinct))
-                :from (into [record] args)]))))
-
-(defn build-rule [{:keys [name left right]}]
-  (dsl/build-rule name
-    (concat
-      (map transform-when-form left)
-      ['=>]
-      right)))
-
-(s/def ::binding (s/cat
-                   :symbol symbol?
-                   :arrow '#{<- <<-}))
-
-(s/def ::query-form (s/cat
-                      :binding ::binding
-                      :record symbol?
-                      :args (s/* any?)))
-
-(s/def ::left-side (s/+ (s/spec ::query-form)))
-
-(s/def ::right-side (s/+ list?))
-
-(s/def ::rule (s/cat
-                :name symbol?
-                :left ::left-side
-                :split '#{=>}
-                :right ::right-side))
-
-(defn parse [spec content]
-  (let [res (s/conform spec content)]
-    (if (= ::s/invalid res)
-      (throw (ex-info (expound/expound-str spec content) {}))
-      res)))
-
-(extend-type java.util.Map
-  compiler/IRuleSource
-  (load-rules [m]
-    [m]))
-
-(defn form->query [form]
-  (->> form
-       (parse ::query-form)
-       select-form->query))
-
-(defn ->query* [form]
-  (let [sym (first form)
-        query (form->query form)]
-    (swap! *queries* assoc sym query)
-    query))
-
-(defn form->rule [form]
-  (->> form
-       (parse ::rule)
-       build-rule))
-
-(defn ->rule* [form]
-  (let [sym (first form)
-        rule (form->rule form)]
-    (swap! *rules* assoc sym rule)
-    rule))
 
