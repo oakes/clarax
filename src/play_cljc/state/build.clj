@@ -13,33 +13,17 @@
 
 (def ^:dynamic *rules* (atom {}))
 (def ^:dynamic *queries* (atom {}))
-(def ^:dynamic *facts* (atom {}))
 (def ^:dynamic *macro-name* nil)
 
-(defn add-fact [sym fields]
-  (swap! *facts* update sym (fn [existing-fact]
-                              (when (and existing-fact
-                                         (not= existing-fact fields))
-                                (println "WARNING:" sym "has been redefined"))
-                              fields)))
-
-(defn get-fact [fact-sym]
-  (get @*facts* fact-sym))
-
-(defn get-fact-names []
-  (vec (keys @*facts*)))
-
-(defn get-delete-rules []
+(defn get-delete-rules [fact-names]
   (reduce
     (fn [productions fact-name]
-      (if (get-fact fact-name)
-        (conj productions
-              (dsl/build-rule (symbol (str 'delete- fact-name))
-                [['?fact '<- fact-name '(< version @*version)]
-                 '=> '(play-cljc.state/delete! ?fact)]))
-        productions))
+      (conj productions
+            (dsl/build-rule (symbol (str 'delete- fact-name))
+              [['?fact '<- fact-name '(< version @*version)]
+               '=> '(play-cljc.state/delete! ?fact)])))
     []
-    (get-fact-names)))
+    fact-names))
 
 (defn get-rules []
   (-> @*rules* vals vec))
@@ -47,23 +31,21 @@
 (defn get-queries []
   (-> @*queries* vals vec))
 
-(defn get-fact-queries []
+(defn get-fact-queries [fact-names]
   (reduce
     (fn [m fact-name]
-      (if (get-fact fact-name)
-        (assoc m fact-name
-               (dsl/build-query (symbol (str 'get- fact-name))
-                 (list [] ['?ret '<-
-                           '(clara.rules.accumulators/max :version :returns-fact true)
-                           :from [fact-name]])))
-        m))
+      (assoc m fact-name
+             (dsl/build-query (symbol (str 'get- fact-name))
+               (list [] ['?ret '<-
+                         '(clara.rules.accumulators/max :version :returns-fact true)
+                         :from [fact-name]]))))
     {}
-    (get-fact-names)))
+    fact-names))
 
-(defn get-state []
-  (let [fact-queries (get-fact-queries)
+(defn get-state [fact-names]
+  (let [fact-queries (get-fact-queries fact-names)
         queries (get-queries)
-        delete-rules (get-delete-rules)
+        delete-rules (get-delete-rules fact-names)
         productions (-> (get-rules)
                         (into delete-rules)
                         (into queries)
@@ -74,7 +56,6 @@
 (def ^:const reserved-fields '[version *version])
 
 (defn deffact* [name fields opts]
-  (add-fact name fields)
   (let [invalid-fields (set/intersection (set reserved-fields) (set fields))
         fields (into reserved-fields fields)]
     (when (seq invalid-fields)
@@ -87,12 +68,10 @@
   `(~(symbol (str '-> name)) 0 (atom 0) ~@args))
 
 (defn transform-when-form [{:keys [binding record args]}]
-  (let [fact? (get-fact record)
-        query (cond-> (into [record] args)
-                      fact?
-                      (into ['(= version @*version)]))]
+  (let [query (-> (into [record] args)
+                  (into ['(= version @*version)]))]
     (if-let [sym (:symbol binding)]
-      (if (and fact? (= (:arrow binding) '<-))
+      (if (= (:arrow binding) '<-)
         (vec (concat [sym '<-] query))
         [sym '<- '(clara.rules.accumulators/distinct)
          :from query])
@@ -102,8 +81,7 @@
   (let [sym (:symbol binding)]
     (dsl/build-query sym
       (list [] ['?ret '<-
-                (if (and (get-fact record)
-                         (= (:arrow binding) '<-))
+                (if (= (:arrow binding) '<-)
                   '(clara.rules.accumulators/max :version :returns-fact true)
                   '(clara.rules.accumulators/distinct))
                 :from (into [record] args)]))))

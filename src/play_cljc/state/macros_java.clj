@@ -15,8 +15,8 @@
   (binding [build/*macro-name* (first &form)]
     (build/defrule* form)))
 
-(defmacro ->state []
-  (let [{:keys [productions queries]} (build/get-state)]
+(defmacro ->state [& fact-names]
+  (let [{:keys [productions queries]} (build/get-state fact-names)]
     `{:session (compiler/mk-session ~productions)
       :queries ~queries}))
 

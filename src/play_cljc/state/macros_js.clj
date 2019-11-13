@@ -18,8 +18,8 @@
             *out* (java.io.StringWriter.)]
     (build/defrule* form)))
 
-(defmacro ->state []
-  (let [{:keys [productions queries]} (build/get-state)]
+(defmacro ->state [& fact-names]
+  (let [{:keys [productions queries]} (build/get-state fact-names)]
     {:session (-> productions
                   eval
                   (macros/productions->session-assembly-form []))

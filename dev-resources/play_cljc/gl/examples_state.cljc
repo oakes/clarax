@@ -33,7 +33,7 @@
 
 (def *state
   (atom
-    (-> (->state)
+    (-> (->state Game Rect)
         (state/insert! (->fact Rect 50 50 100 100)))))
 
 ;; rect
