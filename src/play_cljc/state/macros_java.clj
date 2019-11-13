@@ -3,21 +3,25 @@
             [clara.rules.compiler :as compiler]
             [clara.rules :as rules]))
 
-(defmacro ->state [& fact-names]
-  (let [productions (build/get-productions-for-facts fact-names)
-        fact-queries (build/get-fact-queries fact-names)]
-    {:session `(compiler/mk-session ~(into productions (vals fact-queries)))
-     :queries fact-queries}))
-
 (defmacro deffact [name fields & opts]
-  (build/deffact* name fields opts))
+  (binding [build/*macro-name* (first &form)]
+    (build/deffact* name fields opts)))
+
+(defmacro defquery [& form]
+  (binding [build/*macro-name* (first &form)]
+    (build/defquery* form)))
+
+(defmacro defrule [& form]
+  (binding [build/*macro-name* (first &form)]
+    (build/defrule* form)))
+
+(defmacro ->state []
+  (let [fact-names (build/get-fact-names)
+        productions (build/get-productions-for-facts fact-names)
+        fact-queries (build/get-fact-queries fact-names)]
+    `{:session (compiler/mk-session ~(into productions (vals fact-queries)))
+      :queries ~fact-queries}))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))
-
-(defmacro defquery [& form]
-  (build/defquery* form))
-
-(defmacro defrule [& form]
-  (build/defrule* form))
 

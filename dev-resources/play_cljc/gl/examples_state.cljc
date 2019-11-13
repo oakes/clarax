@@ -31,9 +31,10 @@
   =>
   (state/update! ?rect {:y (- (:height ?game) (:height ?rect))}))
 
-(def *state (atom
-              (-> (->state Rect Game)
-                  (state/insert! (->fact Rect 50 50 100 100)))))
+(def *state
+  (atom
+    (-> (->state)
+        (state/insert! (->fact Rect 50 50 100 100)))))
 
 ;; rect
 

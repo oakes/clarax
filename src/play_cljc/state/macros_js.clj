@@ -3,8 +3,24 @@
             [clara.macros :as macros]
             [clara.rules :as rules]))
 
-(defmacro ->state [& fact-names]
-  (let [productions (build/get-productions-for-facts fact-names)
+(defmacro deffact [name fields & opts]
+  (binding [build/*macro-name* (first &form)
+            *out* (java.io.StringWriter.)]
+    (build/deffact* name fields opts)))
+
+(defmacro defquery [& form]
+  (binding [build/*macro-name* (first &form)
+            *out* (java.io.StringWriter.)]
+    (build/defquery* form)))
+
+(defmacro defrule [& form]
+  (binding [build/*macro-name* (first &form)
+            *out* (java.io.StringWriter.)]
+    (build/defrule* form)))
+
+(defmacro ->state []
+  (let [fact-names (build/get-fact-names)
+        productions (build/get-productions-for-facts fact-names)
         fact-queries (build/get-fact-queries fact-names)]
     {:session (-> (into productions (vals fact-queries))
                   eval
@@ -13,16 +29,4 @@
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))
-
-(defmacro deffact [name fields & opts]
-  (binding [*out* (java.io.StringWriter.)]
-    (build/deffact* name fields opts)))
-
-(defmacro defquery [& form]
-  (binding [*out* (java.io.StringWriter.)]
-    (build/defquery* form)))
-
-(defmacro defrule [& form]
-  (binding [*out* (java.io.StringWriter.)]
-    (build/defrule* form)))
 

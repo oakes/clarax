@@ -11,23 +11,61 @@
             [clojure.walk :as walk]
             [clojure.set :as set]))
 
-(def *productions (atom {}))
-(def *facts (atom {}))
-(def *production->facts (atom {}))
+(def ^:dynamic *productions* (atom {}))
+(def ^:dynamic *facts* (atom {}))
+(def ^:dynamic *production->facts* (atom {}))
+(def ^:dynamic *macro-name* nil)
+
+(defn throw-top-level-error []
+  (throw (ex-info (format "%s failed" *macro-name*) {})))
 
 (defn add-production [sym prod]
-  (swap! *productions update sym (fn [existing-prod]
-                                   (when (and existing-prod
-                                              (not= existing-prod prod))
-                                     (println "WARNING:" sym "has been redefined"))
-                                   prod)))
+  (if *productions*
+    (swap! *productions* update sym (fn [existing-prod]
+                                      (when (and existing-prod
+                                                 (not= existing-prod prod))
+                                        (println "WARNING:" sym "has been redefined"))
+                                      prod))
+    (throw-top-level-error)))
+
+(defn get-production [prod-sym]
+  (if *productions*
+    (get @*productions* prod-sym)
+    (throw-top-level-error)))
 
 (defn add-fact [sym fields]
-  (swap! *facts update sym (fn [existing-fact]
-                             (when (and existing-fact
-                                        (not= existing-fact fields))
-                               (println "WARNING:" sym "has been redefined"))
-                             fields)))
+  (if *facts*
+    (swap! *facts* update sym (fn [existing-fact]
+                                (when (and existing-fact
+                                           (not= existing-fact fields))
+                                  (println "WARNING:" sym "has been redefined"))
+                                fields))
+    (throw-top-level-error)))
+
+(defn get-fact [fact-sym]
+  (if *facts*
+    (get @*facts* fact-sym)
+    (throw-top-level-error)))
+
+(defn get-fact-names []
+  (if *facts*
+    (vec (keys @*facts*))
+    (throw-top-level-error)))
+
+(defn add-prod->facts [prod-sym facts]
+  (if *production->facts*
+    (swap! *production->facts* assoc prod-sym facts)
+    (throw-top-level-error)))
+
+(defn get-facts-for-prod [prod-sym]
+  (if *production->facts*
+    (get @*production->facts* prod-sym)
+    (throw-top-level-error)))
+
+(defn get-production->facts []
+  (if *production->facts*
+    @*production->facts*
+    (throw-top-level-error)))
 
 (defn get-prod-names-for-fact [fact-name]
   (reduce-kv
@@ -36,12 +74,12 @@
         (conj prods prod-name)
         prods))
     #{}
-    @*production->facts))
+    (get-production->facts)))
 
 (defn find-missing-facts [fact-names prod-names]
   (let [required-fact-names (reduce
                               (fn [required prod-name]
-                                (into required (get @*production->facts prod-name)))
+                                (into required (get-facts-for-prod prod-name)))
                               #{}
                               prod-names)
         missing-fact-names (set/difference required-fact-names (set fact-names))]
@@ -53,7 +91,7 @@
 (defn add-delete-rules [fact-names productions]
   (reduce
     (fn [productions fact-name]
-      (if (contains? @*facts fact-name)
+      (if (get-fact fact-name)
         (conj productions
               (dsl/build-rule (symbol (str 'delete- fact-name))
                 [['?fact '<- fact-name '(< version @*version)]
@@ -71,14 +109,14 @@
        (find-missing-facts fact-names)
        (reduce
          (fn [prods prod-name]
-           (conj prods (get @*productions prod-name)))
+           (conj prods (get-production prod-name)))
          [])
        (add-delete-rules fact-names)))
 
 (defn get-fact-queries [fact-names]
   (reduce
     (fn [m fact-name]
-      (if (contains? @*facts fact-name)
+      (if (get-fact fact-name)
         (assoc m fact-name
                (dsl/build-query (symbol (str 'get- fact-name))
                  (list [] ['?ret '<-
@@ -101,12 +139,10 @@
     `(defrecord ~name ~fields ~@opts)))
 
 (defn ->fact* [name args]
-  (when-not (contains? @*facts name)
-    (throw (ex-info (str name " was not defined with deffact (or possibly was defined after ->fact is called)") {})))
   `(~(symbol (str '-> name)) 0 (atom 0) ~@args))
 
 (defn transform-when-form [{:keys [binding record args]}]
-  (let [fact? (contains? @*facts record)
+  (let [fact? (get-fact record)
         query (cond-> (into [record] args)
                       fact?
                       (into ['(= version @*version)]))]
@@ -119,17 +155,17 @@
 
 (defn select-form->query [{:keys [binding record args]}]
   (let [sym (:symbol binding)]
-    (swap! *production->facts assoc sym #{record})
+    (add-prod->facts sym #{record})
     (dsl/build-query sym
       (list [] ['?ret '<-
-                (if (and (contains? @*facts record)
+                (if (and (get-fact record)
                          (= (:arrow binding) '<-))
                   '(clara.rules.accumulators/max :version :returns-fact true)
                   '(clara.rules.accumulators/distinct))
                 :from (into [record] args)]))))
 
 (defn build-rule [{:keys [name left right]}]
-  (swap! *production->facts assoc name (set (map :record left)))
+  (add-prod->facts name (set (map :record left)))
   (dsl/build-rule name
     (concat
       (map transform-when-form left)
