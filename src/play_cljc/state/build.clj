@@ -26,14 +26,14 @@
 
 (s/def ::rule (s/cat
                 :header #{:rule}
-                :symbol symbol?
+                :name keyword?
                 :left ::left-side
                 :split '#{=>}
                 :right ::right-side))
 
 (s/def ::query (s/cat
                  :header #{:query}
-                 :symbol symbol?
+                 :name keyword?
                  :arrow '#{<- <<-}
                  :record symbol?
                  :args (s/* any?)))
@@ -85,17 +85,17 @@
       [symbol '<- '(clara.rules.accumulators/distinct)
        :from query])))
 
-(defn select-form->query [{:keys [symbol arrow record args]}]
+(defn select-form->query [{:keys [name arrow record args]}]
   (swap! *facts* conj record)
-  (dsl/build-query symbol
+  (dsl/build-query (symbol name)
     (list [] ['?ret '<-
               (if (= arrow '<-)
                 '(clara.rules.accumulators/max :version :returns-fact true)
                 '(clara.rules.accumulators/distinct))
               :from (into [record] args)])))
 
-(defn build-rule [{:keys [symbol left right]}]
-  (dsl/build-rule symbol
+(defn build-rule [{:keys [name left right]}]
+  (dsl/build-rule (symbol name)
     (concat
       (map transform-when-form left)
       ['=>]
@@ -108,15 +108,11 @@
           parsed-body (parse-body body)
           _ (doseq [[kind prod] parsed-body]
               (case kind
-                :query (vswap! *queries assoc (:symbol prod) (select-form->query prod))
-                :rule (vswap! *rules assoc (:symbol prod) (build-rule prod))))
+                :query (vswap! *queries assoc (:name prod) (select-form->query prod))
+                :rule (vswap! *rules assoc (:name prod) (build-rule prod))))
           fact-names @*facts*
           fact-queries (get-fact-queries fact-names)
-          queries (reduce-kv
-                    (fn [m k v]
-                      (assoc m (list 'quote k) v))
-                    {}
-                    @*queries)
+          queries @*queries
           delete-rules (get-delete-rules fact-names)
           productions (-> (vec (vals @*rules))
                           (into delete-rules)

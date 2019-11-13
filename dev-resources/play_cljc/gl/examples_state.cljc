@@ -20,16 +20,16 @@
 (def *state
   (atom
     (->state
-      [:query get-rects
+      [:query :get-rects
        <<- Rect]
 
-      [:rule right-boundary
+      [:rule :right-boundary
        [?game <- Game]
        [?rect <- Rect (> (+ x width) (:width ?game))]
        =>
        (state/update! ?rect {:x (- (:width ?game) (:width ?rect))})]
 
-      [:rule bottom-boundary
+      [:rule :bottom-boundary
        [?game <- Game]
        [?rect <- Rect (> (+ y height) (:height ?game))]
        =>
@@ -74,7 +74,7 @@
        (play-cljc.gl.example-utils/game-loop
          (fn rect-render [{:keys [entity] :as game}]
            (play-cljc.gl.example-utils/resize-example game)
-           (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state 'get-rects)))
+           (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state :get-rects)))
            (let [{:keys [x y width height]} (play-cljc.gl.examples-state/get-rect @play-cljc.gl.examples-state/*state)]
              (let [game-width (play-cljc.gl.example-utils/get-width game)
                    game-height (play-cljc.gl.example-utils/get-height game)]
