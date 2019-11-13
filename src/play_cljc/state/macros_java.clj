@@ -16,11 +16,9 @@
     (build/defrule* form)))
 
 (defmacro ->state []
-  (let [fact-names (build/get-fact-names)
-        productions (build/get-productions-for-facts fact-names)
-        fact-queries (build/get-fact-queries fact-names)]
-    `{:session (compiler/mk-session ~(into productions (vals fact-queries)))
-      :queries ~fact-queries}))
+  (let [{:keys [productions queries]} (build/get-state)]
+    `{:session (compiler/mk-session ~productions)
+      :queries ~queries}))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))

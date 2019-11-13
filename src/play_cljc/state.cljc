@@ -48,17 +48,19 @@
          (delete! fact)
          (insert! (merge fact new-args))))))
 
+(defn- get-query [state query-name]
+  (or (when (map? query-name)
+        query-name)
+      (get (:queries state) query-name)
+      (throw (ex-info (str "Query for " query-name " not found") {}))))
+
 (defn query
-  ([state q]
-   (query state q {}))
-  ([state q params]
+  ([state query-name]
+   (query state query-name {}))
+  ([state query-name params]
    (some-> state
            :session
-           (engine/query q params)
+           (engine/query (get-query state query-name) params)
            first
            :?ret)))
-
-(defn query-fact [state fact-name]
-  (query state (or (get (:queries state) fact-name)
-                   (throw (ex-info (str "Query for " fact-name " not found") {})))))
 

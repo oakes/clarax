@@ -19,13 +19,11 @@
     (build/defrule* form)))
 
 (defmacro ->state []
-  (let [fact-names (build/get-fact-names)
-        productions (build/get-productions-for-facts fact-names)
-        fact-queries (build/get-fact-queries fact-names)]
-    {:session (-> (into productions (vals fact-queries))
+  (let [{:keys [productions queries]} (build/get-state)]
+    {:session (-> productions
                   eval
                   (macros/productions->session-assembly-form []))
-     :queries fact-queries}))
+     :queries queries}))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))

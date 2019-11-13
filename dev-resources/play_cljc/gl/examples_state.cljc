@@ -47,7 +47,7 @@
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
-                          (let [fact (state/query-fact state Rect)]
+                          (let [fact (state/query state Rect)]
                             (state/update! state fact (select-keys new-mouse-state [:x :y])))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
@@ -56,7 +56,7 @@
        (assoc game :entity)))
 
 (defn get-rect [state]
-  (state/query-fact state Rect))
+  (state/query state Rect))
 
 (defexample play-cljc.state/rect-example
   {:with-card card
