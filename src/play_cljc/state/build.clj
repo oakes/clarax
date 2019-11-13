@@ -11,8 +11,9 @@
             [clojure.walk :as walk]
             [clojure.set :as set]))
 
-(def ^:dynamic *rules* (atom {}))
-(def ^:dynamic *queries* (atom {}))
+(def ^:dynamic *rules* nil)
+(def ^:dynamic *queries* nil)
+(def ^:dynamic *facts* nil)
 (def ^:dynamic *macro-name* nil)
 
 (defn get-delete-rules [fact-names]
@@ -29,7 +30,11 @@
   (-> @*rules* vals vec))
 
 (defn get-queries []
-  (-> @*queries* vals vec))
+  (reduce-kv
+    (fn [m k v]
+      (assoc m (list 'quote k) v))
+    {}
+    @*queries*))
 
 (defn get-fact-queries [fact-names]
   (reduce
@@ -42,16 +47,17 @@
     {}
     fact-names))
 
-(defn get-state [fact-names]
-  (let [fact-queries (get-fact-queries fact-names)
+(defn get-state []
+  (let [fact-names @*facts*
+        fact-queries (get-fact-queries fact-names)
         queries (get-queries)
         delete-rules (get-delete-rules fact-names)
         productions (-> (get-rules)
                         (into delete-rules)
-                        (into queries)
+                        (into (vals queries))
                         (into (vals fact-queries)))]
     {:productions productions
-     :queries fact-queries}))
+     :queries (merge queries fact-queries)}))
 
 (def ^:const reserved-fields '[version *version])
 
@@ -68,6 +74,7 @@
   `(~(symbol (str '-> name)) 0 (atom 0) ~@args))
 
 (defn transform-when-form [{:keys [binding record args]}]
+  (swap! *facts* conj record)
   (let [query (-> (into [record] args)
                   (into ['(= version @*version)]))]
     (if-let [sym (:symbol binding)]
@@ -78,6 +85,7 @@
       query)))
 
 (defn select-form->query [{:keys [binding record args]}]
+  (swap! *facts* conj record)
   (let [sym (:symbol binding)]
     (dsl/build-query sym
       (list [] ['?ret '<-
@@ -128,20 +136,20 @@
        (parse ::query-form)
        select-form->query))
 
-(defn defquery* [form]
+(defn ->query* [form]
   (let [sym (first form)
         query (form->query form)]
     (swap! *queries* assoc sym query)
-    `(def ~sym ~query)))
+    query))
 
 (defn form->rule [form]
   (->> form
        (parse ::rule)
        build-rule))
 
-(defn defrule* [form]
+(defn ->rule* [form]
   (let [sym (first form)
         rule (form->rule form)]
     (swap! *rules* assoc sym rule)
-    `(def ~sym ~rule)))
+    rule))
 

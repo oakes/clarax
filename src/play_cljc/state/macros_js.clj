@@ -8,22 +8,26 @@
             *out* (java.io.StringWriter.)]
     (build/deffact* name fields opts)))
 
-(defmacro defquery [& form]
+(defmacro ->state [& body]
+  (binding [build/*rules* (atom {})
+            build/*queries* (atom {})
+            build/*facts* (atom #{})]
+    (run! eval body)
+    (let [{:keys [productions queries]} (build/get-state)]
+      {:session (-> productions
+                    eval
+                    (macros/productions->session-assembly-form []))
+       :queries queries})))
+
+(defmacro ->query [& form]
   (binding [build/*macro-name* (first &form)
             *out* (java.io.StringWriter.)]
-    (build/defquery* form)))
+    (build/->query* form)))
 
-(defmacro defrule [& form]
+(defmacro ->rule [& form]
   (binding [build/*macro-name* (first &form)
             *out* (java.io.StringWriter.)]
-    (build/defrule* form)))
-
-(defmacro ->state [& fact-names]
-  (let [{:keys [productions queries]} (build/get-state fact-names)]
-    {:session (-> productions
-                  eval
-                  (macros/productions->session-assembly-form []))
-     :queries queries}))
+    (build/->rule* form)))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))

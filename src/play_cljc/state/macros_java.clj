@@ -7,18 +7,22 @@
   (binding [build/*macro-name* (first &form)]
     (build/deffact* name fields opts)))
 
-(defmacro defquery [& form]
-  (binding [build/*macro-name* (first &form)]
-    (build/defquery* form)))
+(defmacro ->state [& body]
+  (binding [build/*rules* (atom {})
+            build/*queries* (atom {})
+            build/*facts* (atom #{})]
+    (run! eval body)
+    (let [{:keys [productions queries]} (build/get-state)]
+      `{:session (compiler/mk-session ~productions)
+        :queries ~queries})))
 
-(defmacro defrule [& form]
+(defmacro ->query [& form]
   (binding [build/*macro-name* (first &form)]
-    (build/defrule* form)))
+    (build/->query* form)))
 
-(defmacro ->state [& fact-names]
-  (let [{:keys [productions queries]} (build/get-state fact-names)]
-    `{:session (compiler/mk-session ~productions)
-      :queries ~queries}))
+(defmacro ->rule [& form]
+  (binding [build/*macro-name* (first &form)]
+    (build/->rule* form)))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))

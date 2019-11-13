@@ -10,31 +10,31 @@
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
             #?(:clj [dynadoc.example :refer [defexample]])
-            #?(:clj  [play-cljc.state.macros-java :refer [->state ->fact deffact defquery defrule]]
-               :cljs [play-cljc.state.macros-js :refer-macros [->state ->fact deffact defquery defrule]]))
+            #?(:clj  [play-cljc.state.macros-java :refer [deffact ->state ->query ->rule ->fact]]
+               :cljs [play-cljc.state.macros-js :refer-macros [deffact ->state ->query ->rule ->fact]]))
   #?(:cljs (:require-macros [dynadoc.example :refer [defexample]])))
 
 (deffact Rect [x y width height])
 (deffact Game [width height])
 
-(defquery get-rects <<- Rect)
-
-(defrule right-boundary
-  [?game <- Game]
-  [?rect <- Rect (> (+ x width) (:width ?game))]
-  =>
-  (state/update! ?rect {:x (- (:width ?game) (:width ?rect))}))
-
-(defrule bottom-boundary
-  [?game <- Game]
-  [?rect <- Rect (> (+ y height) (:height ?game))]
-  =>
-  (state/update! ?rect {:y (- (:height ?game) (:height ?rect))}))
-
 (def *state
   (atom
-    (-> (->state Game Rect)
-        (state/insert! (->fact Rect 50 50 100 100)))))
+    (->state
+      (->query get-rects <<- Rect)
+
+      (->rule right-boundary
+        [?game <- Game]
+        [?rect <- Rect (> (+ x width) (:width ?game))]
+        =>
+        (state/update! ?rect {:x (- (:width ?game) (:width ?rect))}))
+
+      (->rule bottom-boundary
+        [?game <- Game]
+        [?rect <- Rect (> (+ y height) (:height ?game))]
+        =>
+        (state/update! ?rect {:y (- (:height ?game) (:height ?rect))})))))
+
+(swap! *state state/insert! (->fact Rect 50 50 100 100))
 
 ;; rect
 
@@ -73,7 +73,7 @@
        (play-cljc.gl.example-utils/game-loop
          (fn rect-render [{:keys [entity] :as game}]
            (play-cljc.gl.example-utils/resize-example game)
-           (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state play-cljc.gl.examples-state/get-rects)))
+           (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state 'get-rects)))
            (let [{:keys [x y width height]} (play-cljc.gl.examples-state/get-rect @play-cljc.gl.examples-state/*state)]
              (let [game-width (play-cljc.gl.example-utils/get-width game)
                    game-height (play-cljc.gl.example-utils/get-height game)]
