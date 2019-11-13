@@ -26,20 +26,19 @@
 
 (s/def ::rule (s/cat
                 :header #{:rule}
-                :name keyword?
                 :left ::left-side
                 :split '#{=>}
                 :right ::right-side))
 
 (s/def ::query (s/cat
                  :header #{:query}
-                 :name keyword?
                  :arrow '#{<- <<-}
                  :record symbol?
                  :args (s/* any?)))
 
-(s/def ::body (s/coll-of (s/or :query ::query
-                               :rule ::rule)))
+(s/def ::body (s/map-of keyword?
+                        (s/or :query ::query
+                              :rule ::rule)))
 
 (defn parse [spec content]
   (let [res (s/conform spec content)]
@@ -85,7 +84,7 @@
       [symbol '<- '(clara.rules.accumulators/distinct)
        :from query])))
 
-(defn select-form->query [{:keys [name arrow record args]}]
+(defn select-form->query [name {:keys [arrow record args]}]
   (swap! *facts* conj record)
   (dsl/build-query (symbol name)
     (list [] ['?ret '<-
@@ -94,7 +93,7 @@
                 '(clara.rules.accumulators/distinct))
               :from (into [record] args)])))
 
-(defn build-rule [{:keys [name left right]}]
+(defn build-rule [name {:keys [left right]}]
   (dsl/build-rule (symbol name)
     (concat
       (map transform-when-form left)
@@ -106,10 +105,10 @@
     (let [*queries (volatile! {})
           *rules (volatile! {})
           parsed-body (parse-body body)
-          _ (doseq [[kind prod] parsed-body]
+          _ (doseq [[name [kind prod]] parsed-body]
               (case kind
-                :query (vswap! *queries assoc (:name prod) (select-form->query prod))
-                :rule (vswap! *rules assoc (:name prod) (build-rule prod))))
+                :query (vswap! *queries assoc name (select-form->query name prod))
+                :rule (vswap! *rules assoc name (build-rule name prod))))
           fact-names @*facts*
           fact-queries (get-fact-queries fact-names)
           queries @*queries

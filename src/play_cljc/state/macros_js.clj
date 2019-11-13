@@ -8,8 +8,8 @@
             *out* (java.io.StringWriter.)]
     (build/deffact* name fields opts)))
 
-(defmacro ->state [& body]
-  (let [{:keys [productions queries]} (build/get-state body)]
+(defmacro ->state [rules-and-queries]
+  (let [{:keys [productions queries]} (build/get-state rules-and-queries)]
     {:session (-> productions
                   eval
                   (macros/productions->session-assembly-form []))

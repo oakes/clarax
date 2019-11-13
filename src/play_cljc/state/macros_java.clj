@@ -7,8 +7,8 @@
   (binding [build/*macro-name* (first &form)]
     (build/deffact* name fields opts)))
 
-(defmacro ->state [& body]
-  (let [{:keys [productions queries]} (build/get-state body)]
+(defmacro ->state [rules-and-queries]
+  (let [{:keys [productions queries]} (build/get-state rules-and-queries)]
     `{:session (compiler/mk-session ~productions)
       :queries ~queries}))
 

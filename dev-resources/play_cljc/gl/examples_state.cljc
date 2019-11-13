@@ -20,20 +20,22 @@
 (def *state
   (atom
     (->state
-      [:query :get-rects
-       <<- Rect]
+      {:get-rects
+       [:query <<- Rect]
 
-      [:rule :right-boundary
-       [?game <- Game]
-       [?rect <- Rect (> (+ x width) (:width ?game))]
-       =>
-       (state/update! ?rect {:x (- (:width ?game) (:width ?rect))})]
+       :right-boundary
+       [:rule
+        [?game <- Game]
+        [?rect <- Rect (> (+ x width) (:width ?game))]
+        =>
+        (state/update! ?rect {:x (- (:width ?game) (:width ?rect))})]
 
-      [:rule :bottom-boundary
-       [?game <- Game]
-       [?rect <- Rect (> (+ y height) (:height ?game))]
-       =>
-       (state/update! ?rect {:y (- (:height ?game) (:height ?rect))})])))
+       :bottom-boundary
+       [:rule
+        [?game <- Game]
+        [?rect <- Rect (> (+ y height) (:height ?game))]
+        =>
+        (state/update! ?rect {:y (- (:height ?game) (:height ?rect))})]})))
 
 (swap! *state state/insert! (->fact Rect 50 50 100 100))
 
