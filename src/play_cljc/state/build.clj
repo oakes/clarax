@@ -14,6 +14,22 @@
 (def ^:dynamic *facts* nil)
 (def ^:dynamic *macro-name* nil)
 
+(s/def ::let-left (s/or
+                    :simple symbol?
+                    :destructure map?))
+
+(s/def ::let-right (s/or
+                     :latest symbol?
+                     :all (s/tuple symbol?)))
+
+(s/def ::let-pair (s/cat
+                    :left ::let-left
+                    :right ::let-right))
+
+(s/def ::let-form (s/cat
+                    :sym '#{let}
+                    :binding (s/spec (s/* ::let-pair))))
+
 (s/def ::query-form (s/cat
                       :symbol symbol?
                       :arrow '#{<- <<-}
@@ -30,24 +46,19 @@
                 :split '#{=>}
                 :right ::right-side))
 
-(s/def ::query (s/cat
-                 :header #{:query}
-                 :arrow '#{<- <<-}
-                 :record symbol?
-                 :args (s/* any?)))
+(s/def ::query (s/or
+                 :simple ::let-right
+                 :let-form ::let-form))
 
 (s/def ::body (s/map-of keyword?
-                        (s/or :query ::query
-                              :rule ::rule)))
+                        (s/or :rule ::rule
+                              :query ::query)))
 
 (defn parse [spec content]
   (let [res (s/conform spec content)]
     (if (= ::s/invalid res)
       (throw (ex-info (expound/expound-str spec content) {}))
       res)))
-
-(defn parse-body [body]
-  (parse ::body body))
 
 (extend-type java.util.Map
   compiler/IRuleSource
@@ -84,14 +95,24 @@
       [symbol '<- '(clara.rules.accumulators/distinct)
        :from query])))
 
-(defn select-form->query [name {:keys [arrow record args]}]
-  (swap! *facts* conj record)
-  (dsl/build-query (symbol name)
-    (list [] ['?ret '<-
-              (if (= arrow '<-)
-                '(clara.rules.accumulators/max :version :returns-fact true)
-                '(clara.rules.accumulators/distinct))
-              :from (into [record] args)])))
+(defn get-record [kind value]
+  (case kind
+    :simple
+    (case (first value)
+      :latest (second value)
+      :all (first (second value)))))
+
+(defn build-query [name [kind value]]
+  (let [record (get-record kind value)]
+    (swap! *facts* conj record)
+    (dsl/build-query (symbol name)
+      (list [] ['?ret '<-
+                (case kind
+                  :simple
+                  (case (first value)
+                    :latest '(clara.rules.accumulators/max :version :returns-fact true)
+                    :all '(clara.rules.accumulators/distinct)))
+                :from [record]]))))
 
 (defn build-rule [name {:keys [left right]}]
   (dsl/build-rule (symbol name)
@@ -104,10 +125,10 @@
   (binding [*facts* (atom #{})]
     (let [*queries (volatile! {})
           *rules (volatile! {})
-          parsed-body (parse-body body)
+          parsed-body (parse ::body body)
           _ (doseq [[name [kind prod]] parsed-body]
               (case kind
-                :query (vswap! *queries assoc name (select-form->query name prod))
+                :query (vswap! *queries assoc name (build-query name prod))
                 :rule (vswap! *rules assoc name (build-rule name prod))))
           fact-names @*facts*
           fact-queries (get-fact-queries fact-names)

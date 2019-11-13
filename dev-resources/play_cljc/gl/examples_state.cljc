@@ -20,8 +20,7 @@
 (def *state
   (atom
     (->state
-      {:get-rects
-       [:query <<- Rect]
+      {:get-rects [Rect]
 
        :right-boundary
        [:rule
