@@ -87,17 +87,6 @@
     []
     fact-names))
 
-(defn get-fact-queries [fact-names]
-  (reduce
-    (fn [m fact-name]
-      (assoc m fact-name
-             (dsl/build-query (symbol (str 'get- fact-name))
-               (list [] ['?ret '<-
-                         '(clara.rules.accumulators/max :version :returns-fact true)
-                         :from [fact-name]]))))
-    {}
-    fact-names))
-
 (defn transform-when-form [{:keys [symbol arrow record args]}]
   (let [query (-> (into [record] args)
                   (into ['(= version @*version)]))]
@@ -170,15 +159,13 @@
                          (vswap! *query-fns assoc name (build-return-fn prod)))
                 :rule (vswap! *rules assoc name (build-rule name prod))))
           fact-names @*facts*
-          fact-queries (get-fact-queries fact-names)
           queries @*queries
           delete-rules (get-delete-rules fact-names)
           productions (-> (vec (vals @*rules))
                           (into delete-rules)
-                          (into (vals queries))
-                          (into (vals fact-queries)))]
+                          (into (vals queries)))]
       {:productions productions
-       :queries (merge queries fact-queries)
+       :queries queries
        :query-fns @*query-fns})))
 
 (def ^:const reserved-fields '[version *version])

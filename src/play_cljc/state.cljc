@@ -54,7 +54,7 @@
 
 (defn- get-query-fn [state query-name]
   (or (get (:query-fns state) query-name)
-      :?ret))
+      (throw (ex-info (str "Query fn for " query-name " not found") {}))))
 
 (defn query
   ([state query-name]

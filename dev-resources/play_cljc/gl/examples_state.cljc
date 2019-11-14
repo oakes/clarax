@@ -20,9 +20,12 @@
 (def *state
   (atom
     (->state
-      {:get-rects (fn []
-                    (let [?rects [Rect]]
-                      ?rects))
+      {:get-rect (fn []
+                   (let [rect Rect]
+                     rect))
+       :get-rects (fn []
+                    (let [rect [Rect]]
+                      rect))
 
        :right-boundary
        [:rule
@@ -51,16 +54,13 @@
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
-                          (let [fact (state/query state Rect)]
+                          (let [fact (state/query state :get-rect)]
                             (state/update! state fact (select-keys new-mouse-state [:x :y])))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})
        (c/compile game)
        (assoc game :entity)))
-
-(defn get-rect [state]
-  (state/query state Rect))
 
 (defexample play-cljc.state/rect-example
   {:with-card card
@@ -78,7 +78,7 @@
          (fn rect-render [{:keys [entity] :as game}]
            (play-cljc.gl.example-utils/resize-example game)
            (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state :get-rects)))
-           (let [{:keys [x y width height]} (play-cljc.gl.examples-state/get-rect @play-cljc.gl.examples-state/*state)]
+           (let [{:keys [x y width height]} (play-cljc.state/query @play-cljc.gl.examples-state/*state :get-rect)]
              (let [game-width (play-cljc.gl.example-utils/get-width game)
                    game-height (play-cljc.gl.example-utils/get-height game)]
                focus))
