@@ -3,59 +3,87 @@
             [play-cljc.state :as state]
             [play-cljc.state.macros-java :refer [->state ->fact deffact]]))
 
-(deffact Player [x y])
-(deffact Enemy [x y])
+(deffact Player [x y hp])
+(deffact Enemy [x y hp])
 
 (deftest query-enemy
-  (-> (->state {:get-enemy (fn []
-                             (let [enemy Enemy]
-                               enemy))})
-      (state/insert! (->fact Enemy 2 2))
+  (-> (->state {:get-enemy
+                (fn []
+                  (let [enemy Enemy]
+                    enemy))})
+      (state/insert! (->fact Enemy 2 2 10))
       (state/query :get-enemy)
       :x
       (= 2)
       is))
 
 (deftest query-enemies
-  (-> (->state {:get-enemies (fn []
-                               (let [enemy [Enemy]]
-                                 enemy))})
-      (state/insert! (->fact Enemy 0 0))
-      (state/insert! (->fact Enemy 1 1))
-      (state/insert! (->fact Enemy 2 2))
+  (-> (->state {:get-enemies
+                (fn []
+                  (let [enemy [Enemy]]
+                    enemy))})
+      (state/insert! (->fact Enemy 0 0 10))
+      (state/insert! (->fact Enemy 1 1 10))
+      (state/insert! (->fact Enemy 2 2 10))
       (state/query :get-enemies)
       count
       (= 3)
       is))
 
 (deftest query-multiple-facts
-  (as-> (->state {:get-enemy (fn []
-                               (let [enemy Enemy]
-                                 enemy))
-                  :get-entities (fn []
-                                  (let [enemy Enemy
-                                        player Player]
-                                    [enemy player]))})
+  (as-> (->state {:get-enemy
+                  (fn []
+                    (let [enemy Enemy]
+                      enemy))
+                  :get-entities
+                  (fn []
+                    (let [enemy Enemy
+                          player Player]
+                      [enemy player]))})
         $
-        (state/insert! $ (->fact Enemy 0 0))
+        (state/insert! $ (->fact Enemy 0 0 10))
         (state/update! $ (state/query $ :get-enemy) {:x 1 :y 1})
         (state/update! $ (state/query $ :get-enemy) {:x 2 :y 2})
-        (state/insert! $ (->fact Player 3 3))
+        (state/insert! $ (->fact Player 3 3 10))
         (state/query $ :get-entities)
         (let [[enemy player] $]
           (is (= (:x enemy) 2))
           (is (= (:x player) 3)))))
 
 (deftest query-condition
-  (-> (->state {:get-enemies (fn []
-                               (let [enemy [Enemy]
-                                     :when (> (:x enemy) 0)]
-                                 enemy))})
-      (state/insert! (->fact Enemy 0 0))
-      (state/insert! (->fact Enemy 1 1))
-      (state/insert! (->fact Enemy 2 2))
+  (-> (->state {:get-enemies
+                (fn []
+                  (let [enemy [Enemy]
+                        :when (> (:x enemy) 0)]
+                    enemy))})
+      (state/insert! (->fact Enemy 0 0 10))
+      (state/insert! (->fact Enemy 1 1 10))
+      (state/insert! (->fact Enemy 2 2 10))
       (state/query :get-enemies)
       count
       (= 2)
       is))
+
+(deftest query-and-rule
+  (as-> (->state {:get-player
+                  (fn []
+                    (let [player Player]
+                      player))
+                  :get-enemy
+                  (fn []
+                    (let [enemy Enemy]
+                      enemy))
+                  :hurt-enemy
+                  (let [player Player
+                        enemy Enemy
+                        :when (and (= (:x ?player) x)
+                                   (= (:y ?player) y))]
+                    (state/update! ?enemy {:hp (dec (:hp ?enemy))
+                                           :x (inc (:x ?enemy))}))})
+        $
+        (state/insert! $ (->fact Enemy 0 0 10))
+        (state/insert! $ (->fact Player 3 3 10))
+        (state/update! $ (state/query $ :get-player) {:x 0 :y 0})
+        (let [{:keys [hp]} (state/query $ :get-enemy)]
+          (is (= hp 9)))))
 

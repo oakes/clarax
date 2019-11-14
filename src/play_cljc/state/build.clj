@@ -46,24 +46,8 @@
                    :args vector?
                    :body (s/spec ::let-form)))
 
-(s/def ::query-form (s/cat
-                      :symbol symbol?
-                      :arrow '#{<- <<-}
-                      :record fact?
-                      :args (s/* any?)))
-
-(s/def ::left-side (s/+ (s/spec ::query-form)))
-
-(s/def ::right-side (s/+ list?))
-
-(s/def ::rule (s/cat
-                :header #{:rule}
-                :left ::left-side
-                :split '#{=>}
-                :right ::right-side))
-
 (s/def ::body (s/map-of keyword?
-                        (s/or :rule ::rule
+                        (s/or :rule ::let-form
                               :query ::fn-form)))
 
 (defn parse [spec content]
@@ -86,14 +70,6 @@
                '=> '(play-cljc.state/delete! ?fact)])))
     []
     fact-names))
-
-(defn transform-when-form [{:keys [symbol arrow record args]}]
-  (let [query (-> (into [record] args)
-                  (into ['(= version @*version)]))]
-    (if (= arrow '<-)
-      (vec (concat [symbol '<-] query))
-      [symbol '<- '(clara.rules.accumulators/distinct)
-       :from query])))
 
 (defn get-symbol [[kind value]]
   (case kind
@@ -139,12 +115,29 @@
      (let [~(destructure-symbols (-> fn-form :body :binding)) ret#]
        ~@(-> fn-form :body :body))))
 
-(defn build-rule [name {:keys [left right]}]
+(defn transform-let-binding [{:keys [left right when-form]}]
+  (let [record (case (first right)
+                 :latest (second right)
+                 :all (-> right second first))
+        sym (get-symbol left)
+        binding-sym (get-binding-symbol sym)
+        condition (:condition when-form)
+        query (cond-> [record]
+                      condition
+                      (conj condition)
+                      true
+                      (conj '(= version @*version)))]
+    (case (first right)
+      :latest (vec (concat [binding-sym '<-] query))
+      :all [binding-sym '<- '(clara.rules.accumulators/distinct)
+            :from query])))
+
+(defn build-rule [name {:keys [binding body]}]
   (dsl/build-rule (symbol name)
     (concat
-      (map transform-when-form left)
+      (map transform-let-binding binding)
       ['=>]
-      right)))
+      body)))
 
 (defn get-state [body]
   (binding [*facts* (atom #{})]
