@@ -38,7 +38,7 @@
 
 (s/def ::let-form (s/cat
                     :sym '#{let}
-                    :binding (s/spec (s/* ::let-pair))
+                    :bindings (s/spec (s/* ::let-pair))
                     :body (s/* any?)))
 
 (s/def ::fn-form (s/cat
@@ -78,50 +78,67 @@
 (defn get-binding-symbol [sym]
   (symbol (str '? sym)))
 
+(defn ->destructure-pairs [bindings]
+  (reduce
+    (fn [v {:keys [left]}]
+      (let [sym (get-symbol left)]
+        (conj v [sym (get-binding-symbol sym)])))
+    []
+    bindings))
+
+(defn ->destructure-map [pairs]
+  (reduce
+    (fn [m [k v]]
+      (assoc m k (keyword v)))
+    {}
+    pairs))
+
+(defn ->condition [bindings when-form]
+  (when-let [condition (:condition when-form)]
+    (list 'let
+          (reduce into (->destructure-pairs bindings))
+          condition)))
+
 (defn build-query [name fn-form]
   (->> fn-form
        :body
-       :binding
+       :bindings
        (reduce
-         (fn [exprs {:keys [left right when-form]}]
+         (fn [m {:keys [left right when-form] :as binding}]
            (let [sym (get-symbol left)
                  binding-sym (get-binding-symbol sym)
-                 condition (:condition when-form)]
-             (conj exprs
-               (into
-                 [binding-sym '<-]
-                 (case (first right)
-                   :latest ['(clara.rules.accumulators/max :version :returns-fact true)
-                            :from (cond-> [(second right) [sym]]
-                                          condition
-                                          (conj condition))]
-                   :all ['(clara.rules.accumulators/distinct)
-                         :from (cond-> [(-> right second first) [sym]]
-                                       condition
-                                       (conj condition))])))))
-         [(:args fn-form)])
+                 condition (->condition (:bindings m) when-form)]
+             (-> m
+                 (update :ret conj
+                   (into
+                     [binding-sym '<-]
+                     (case (first right)
+                       :latest ['(clara.rules.accumulators/max :version :returns-fact true)
+                                :from (cond-> [(second right) [sym]]
+                                              condition
+                                              (conj condition))]
+                       :all ['(clara.rules.accumulators/distinct)
+                             :from (cond-> [(-> right second first) [sym]]
+                                           condition
+                                           (conj condition))])))
+                 (update :bindings conj binding))))
+         {:ret [(:args fn-form)]
+          :bindings []})
+       :ret
        (dsl/build-query (symbol name))))
-
-(defn destructure-symbols [bindings]
-  (reduce
-    (fn [m {:keys [left]}]
-      (let [sym (get-symbol left)]
-        (assoc m sym (-> sym get-binding-symbol keyword))))
-    {}
-    bindings))
 
 (defn build-return-fn [fn-form]
   `(fn [ret#]
-     (let [~(destructure-symbols (-> fn-form :body :binding)) ret#]
+     (let [~(-> fn-form :body :bindings ->destructure-pairs ->destructure-map) ret#]
        ~@(-> fn-form :body :body))))
 
-(defn transform-let-binding [{:keys [left right when-form]}]
+(defn transform-let-binding [bindings {:keys [left right when-form]}]
   (let [record (case (first right)
                  :latest (second right)
                  :all (-> right second first))
         sym (get-symbol left)
         binding-sym (get-binding-symbol sym)
-        condition (:condition when-form)
+        condition (->condition bindings when-form)
         query (cond-> [record]
                       condition
                       (conj condition)
@@ -132,12 +149,27 @@
       :all [binding-sym '<- '(clara.rules.accumulators/distinct)
             :from query])))
 
-(defn build-rule [name {:keys [binding body]}]
+(defn transform-let-bindings [bindings]
+  (:ret
+    (reduce
+      (fn [m binding]
+        (-> m
+            (update :ret conj
+                    (transform-let-binding (:bindings m) binding))
+            (update :bindings conj binding)))
+      {:ret []
+       :bindings []}
+      bindings)))
+
+(defn build-rule [name {:keys [bindings body]}]
   (dsl/build-rule (symbol name)
     (concat
-      (map transform-let-binding binding)
+      (transform-let-bindings bindings)
       ['=>]
-      body)))
+      (list
+        (concat
+          (list 'let (reduce into (->destructure-pairs bindings)))
+          body)))))
 
 (defn get-state [body]
   (binding [*facts* (atom #{})]

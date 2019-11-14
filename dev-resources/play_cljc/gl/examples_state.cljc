@@ -32,14 +32,14 @@
        (let [game Game
              rect Rect
              :when (> (+ x width)
-                      (:width ?game))]
-         (state/update! ?rect {:x (- (:width ?game) (:width ?rect))}))
+                      (:width game))]
+         (state/update! ?rect {:x (- (:width game) (:width rect))}))
        :bottom-boundary
        (let [game Game
              rect Rect
              :when (> (+ y height)
-                      (:height ?game))]
-         (state/update! ?rect {:y (- (:height ?game) (:height ?rect))}))})))
+                      (:height game))]
+         (state/update! rect {:y (- (:height game) (:height rect))}))})))
 
 (swap! *state state/insert! (->fact Rect 50 50 100 100))
 

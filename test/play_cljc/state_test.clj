@@ -76,10 +76,10 @@
                   :hurt-enemy
                   (let [player Player
                         enemy Enemy
-                        :when (and (= (:x ?player) x)
-                                   (= (:y ?player) y))]
-                    (state/update! ?enemy {:hp (dec (:hp ?enemy))
-                                           :x (inc (:x ?enemy))}))})
+                        :when (and (= (:x player) x)
+                                   (= (:y player) y))]
+                    (state/update! enemy {:hp (dec (:hp enemy))
+                                          :x (inc (:x enemy))}))})
         $
         (state/insert! $ (->fact Enemy 0 0 10))
         (state/insert! $ (->fact Player 3 3 10))
