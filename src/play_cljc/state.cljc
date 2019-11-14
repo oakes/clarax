@@ -2,7 +2,7 @@
   (:require [clara.rules :as rules]
             [clara.rules.engine :as engine]
             [clara.rules.accumulators])
-  (:refer-clojure :exclude [update]))
+  (:refer-clojure :exclude [merge]))
 
 (defn- check-for-context []
   (when-not engine/*rule-context*
@@ -20,11 +20,11 @@
   ([state fact]
    (if engine/*rule-context*
      (do (insert fact) state)
-     (clojure.core/update state :session
-                          (fn [session]
-                            (-> session
-                                (rules/insert (inc-version fact))
-                                rules/fire-rules))))))
+     (update state :session
+             (fn [session]
+               (-> session
+                   (rules/insert (inc-version fact))
+                   rules/fire-rules))))))
 
 (defn delete
   ([fact]
@@ -33,23 +33,23 @@
   ([state fact]
    (if engine/*rule-context*
      (do (delete fact) state)
-     (clojure.core/update state :session
-                          (fn [session]
-                            (-> session
-                                (rules/retract fact)
-                                rules/fire-rules))))))
+     (update state :session
+             (fn [session]
+               (-> session
+                   (rules/retract fact)
+                   rules/fire-rules))))))
 
-(defn update
+(defn merge
   ([fact new-args]
    (check-for-context)
    (rules/retract! fact)
-   (rules/insert-unconditional! (inc-version (merge fact new-args))))
+   (rules/insert-unconditional! (inc-version (clojure.core/merge fact new-args))))
   ([state fact new-args]
    (if engine/*rule-context*
-     (do (update fact new-args) state)
+     (do (merge fact new-args) state)
      (-> state
          (delete fact)
-         (insert (merge fact new-args))))))
+         (insert (clojure.core/merge fact new-args))))))
 
 (defn- get-query [state query-name]
   (or (get (:queries state) query-name)

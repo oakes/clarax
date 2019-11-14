@@ -33,13 +33,13 @@
              rect Rect
              :when (> (+ (:x rect) (:width rect))
                       (:width game))]
-         (state/update ?rect {:x (- (:width game) (:width rect))}))
+         (state/merge ?rect {:x (- (:width game) (:width rect))}))
        :bottom-boundary
        (let [game Game
              rect Rect
              :when (> (+ (:y rect) (:height rect))
                       (:height game))]
-         (state/update rect {:y (- (:height game) (:height rect))}))})))
+         (state/merge rect {:y (- (:height game) (:height rect))}))})))
 
 (swap! *state state/insert (->fact Rect 50 50 100 100))
 
@@ -55,7 +55,7 @@
                  (swap! *state
                         (fn [state]
                           (let [fact (state/query state :get-rect)]
-                            (state/update state fact (select-keys new-mouse-state [:x :y])))))))
+                            (state/merge state fact (select-keys new-mouse-state [:x :y])))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})
