@@ -14,13 +14,18 @@
 (def ^:dynamic *facts* nil)
 (def ^:dynamic *macro-name* nil)
 
+(defn fact? [x]
+  (when (symbol? x)
+    (swap! *facts* conj x)
+    true))
+
 (s/def ::let-left (s/or
                     :simple symbol?
                     :destructure map?))
 
 (s/def ::let-right (s/or
-                     :latest symbol?
-                     :all (s/tuple symbol?)))
+                     :latest fact?
+                     :all (s/tuple fact?)))
 
 (s/def ::let-pair (s/cat
                     :left ::let-left
@@ -33,7 +38,7 @@
 (s/def ::query-form (s/cat
                       :symbol symbol?
                       :arrow '#{<- <<-}
-                      :record symbol?
+                      :record fact?
                       :args (s/* any?)))
 
 (s/def ::left-side (s/+ (s/spec ::query-form)))
@@ -87,7 +92,6 @@
     fact-names))
 
 (defn transform-when-form [{:keys [symbol arrow record args]}]
-  (swap! *facts* conj record)
   (let [query (-> (into [record] args)
                   (into ['(= version @*version)]))]
     (if (= arrow '<-)
@@ -104,7 +108,6 @@
 
 (defn build-query [name [kind value]]
   (let [record (get-record kind value)]
-    (swap! *facts* conj record)
     (dsl/build-query (symbol name)
       (list [] ['?ret '<-
                 (case kind
