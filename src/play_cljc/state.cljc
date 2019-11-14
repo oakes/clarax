@@ -40,7 +40,7 @@
   ([fact new-args]
    (check-for-context)
    (rules/retract! fact)
-   (insert! (merge fact new-args)))
+   (rules/insert-unconditional! (inc-version (merge fact new-args))))
   ([state fact new-args]
    (if engine/*rule-context*
      (do (update! fact new-args) state)

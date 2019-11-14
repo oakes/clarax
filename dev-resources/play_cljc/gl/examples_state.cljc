@@ -31,13 +31,13 @@
        :right-boundary
        (let [game Game
              rect Rect
-             :when (> (+ x width)
+             :when (> (+ (:x rect) (:width rect))
                       (:width game))]
          (state/update! ?rect {:x (- (:width game) (:width rect))}))
        :bottom-boundary
        (let [game Game
              rect Rect
-             :when (> (+ y height)
+             :when (> (+ (:y rect) (:height rect))
                       (:height game))]
          (state/update! rect {:y (- (:height game) (:height rect))}))})))
 

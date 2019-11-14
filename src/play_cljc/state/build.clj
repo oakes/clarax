@@ -99,55 +99,19 @@
           (reduce into (->destructure-pairs bindings))
           condition)))
 
-(defn build-query [name fn-form]
-  (->> fn-form
-       :body
-       :bindings
-       (reduce
-         (fn [m {:keys [left right when-form] :as binding}]
-           (let [sym (get-symbol left)
-                 binding-sym (get-binding-symbol sym)
-                 condition (->condition (:bindings m) when-form)]
-             (-> m
-                 (update :ret conj
-                   (into
-                     [binding-sym '<-]
-                     (case (first right)
-                       :latest ['(clara.rules.accumulators/max :version :returns-fact true)
-                                :from (cond-> [(second right) [sym]]
-                                              condition
-                                              (conj condition))]
-                       :all ['(clara.rules.accumulators/distinct)
-                             :from (cond-> [(-> right second first) [sym]]
-                                           condition
-                                           (conj condition))])))
-                 (update :bindings conj binding))))
-         {:ret [(:args fn-form)]
-          :bindings []})
-       :ret
-       (dsl/build-query (symbol name))))
-
-(defn build-return-fn [fn-form]
-  `(fn [ret#]
-     (let [~(-> fn-form :body :bindings ->destructure-pairs ->destructure-map) ret#]
-       ~@(-> fn-form :body :body))))
-
 (defn transform-let-binding [bindings {:keys [left right when-form]}]
-  (let [record (case (first right)
-                 :latest (second right)
-                 :all (-> right second first))
-        sym (get-symbol left)
+  (let [sym (get-symbol left)
         binding-sym (get-binding-symbol sym)
-        condition (->condition bindings when-form)
-        query (cond-> [record]
-                      condition
-                      (conj condition)
-                      true
-                      (conj '(= version @*version)))]
+        condition (->condition bindings when-form)]
     (case (first right)
-      :latest (vec (concat [binding-sym '<-] query))
+      :latest [binding-sym '<- '(clara.rules.accumulators/max :version :returns-fact true)
+               :from (cond-> [(second right) [sym]]
+                             condition
+                             (conj condition))]
       :all [binding-sym '<- '(clara.rules.accumulators/distinct)
-            :from query])))
+            :from (cond-> [(-> right second first) [sym]]
+                          condition
+                          (conj condition))])))
 
 (defn transform-let-bindings [bindings]
   (:ret
@@ -160,6 +124,19 @@
       {:ret []
        :bindings []}
       bindings)))
+
+(defn build-query [name fn-form]
+  (->> fn-form
+       :body
+       :bindings
+       transform-let-bindings
+       (cons (:args fn-form))
+       (dsl/build-query (symbol name))))
+
+(defn build-return-fn [fn-form]
+  `(fn [ret#]
+     (let [~(-> fn-form :body :bindings ->destructure-pairs ->destructure-map) ret#]
+       ~@(-> fn-form :body :body))))
 
 (defn build-rule [name {:keys [bindings body]}]
   (dsl/build-rule (symbol name)
