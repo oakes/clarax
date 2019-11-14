@@ -19,6 +19,11 @@
     (swap! *facts* conj x)
     true))
 
+(s/def ::when-form (s/cat
+                     :sym '#{when}
+                     :condition list?
+                     :body (s/* any?)))
+
 (s/def ::let-left (s/or
                     :simple symbol?
                     :destructure map?))
@@ -34,7 +39,8 @@
 (s/def ::let-form (s/cat
                     :sym '#{let}
                     :binding (s/spec (s/* ::let-pair))
-                    :body (s/* any?)))
+                    :body (s/alt :condition (s/spec ::when-form)
+                                 :non-condition (s/* any?))))
 
 (s/def ::fn-form (s/cat
                    :sym '#{fn}
@@ -108,6 +114,12 @@
 (defn get-binding-symbol [sym]
   (symbol (str '? sym)))
 
+(defn get-condition [fn-form]
+  (let [[kind value] (-> fn-form :body :body)]
+    (case kind
+      :condition (:condition value)
+      :non-condition nil)))
+
 (defn build-query [name fn-form]
   (->> fn-form
        :body
@@ -115,15 +127,20 @@
        (reduce
          (fn [exprs {:keys [left right]}]
            (let [sym (get-symbol left)
-                 binding-sym (get-binding-symbol sym)]
+                 binding-sym (get-binding-symbol sym)
+                 condition (get-condition fn-form)]
              (conj exprs
                (into
                  [binding-sym '<-]
                  (case (first right)
                    :latest ['(clara.rules.accumulators/max :version :returns-fact true)
-                            :from [(second right) [sym]]]
+                            :from (cond-> [(second right) [sym]]
+                                          condition
+                                          (conj condition))]
                    :all ['(clara.rules.accumulators/distinct)
-                         :from [(-> right second first) [sym]]])))))
+                         :from (cond-> [(-> right second first) [sym]]
+                                       condition
+                                       (conj condition))])))))
          [(:args fn-form)])
        (dsl/build-query (symbol name))))
 
@@ -135,10 +152,16 @@
     {}
     bindings))
 
+(defn get-fn-body [fn-form]
+  (let [[kind value] (-> fn-form :body :body)]
+    (case kind
+      :condition (:body value)
+      :non-condition value)))
+
 (defn build-return-fn [fn-form]
   `(fn [ret#]
      (let [~(destructure-symbols (-> fn-form :body :binding)) ret#]
-       ~@(-> fn-form :body :body))))
+       ~@(get-fn-body fn-form))))
 
 (defn build-rule [name {:keys [left right]}]
   (dsl/build-rule (symbol name)

@@ -19,13 +19,26 @@
 
 (deftest query-multiple
   (-> (->state {:get-enemies (fn []
-                               (let [enemies [Enemy]]
-                                 enemies))})
+                               (let [enemy [Enemy]]
+                                 enemy))})
       (state/insert! (->fact Enemy 0 0))
       (state/insert! (->fact Enemy 1 1))
       (state/insert! (->fact Enemy 2 2))
       (state/query :get-enemies)
       count
       (= 3)
+      is))
+
+(deftest query-condition
+  (-> (->state {:get-enemies (fn []
+                               (let [enemy [Enemy]]
+                                 (when (> (:x enemy) 0)
+                                   enemy)))})
+      (state/insert! (->fact Enemy 0 0))
+      (state/insert! (->fact Enemy 1 1))
+      (state/insert! (->fact Enemy 2 2))
+      (state/query :get-enemies)
+      count
+      (= 2)
       is))
 
