@@ -33,29 +33,29 @@
              rect Rect
              :when (> (+ (:x rect) (:width rect))
                       (:width game))]
-         (state/update! ?rect {:x (- (:width game) (:width rect))}))
+         (state/update ?rect {:x (- (:width game) (:width rect))}))
        :bottom-boundary
        (let [game Game
              rect Rect
              :when (> (+ (:y rect) (:height rect))
                       (:height game))]
-         (state/update! rect {:y (- (:height game) (:height rect))}))})))
+         (state/update rect {:y (- (:height game) (:height rect))}))})))
 
-(swap! *state state/insert! (->fact Rect 50 50 100 100))
+(swap! *state state/insert (->fact Rect 50 50 100 100))
 
 ;; rect
 
 (defn rect-example [game]
   (gl game disable (gl game CULL_FACE))
   (gl game disable (gl game DEPTH_TEST))
-  (swap! *state state/insert! (->fact Game (eu/get-width game) (eu/get-height game)))
+  (swap! *state state/insert (->fact Game (eu/get-width game) (eu/get-height game)))
   (let [*mouse-state (atom {})]
     (add-watch *mouse-state :mouse-moved
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
                           (let [fact (state/query state :get-rect)]
-                            (state/update! state fact (select-keys new-mouse-state [:x :y])))))))
+                            (state/update state fact (select-keys new-mouse-state [:x :y])))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})

@@ -11,7 +11,7 @@
                 (fn []
                   (let [enemy Enemy]
                     enemy))})
-      (state/insert! (->fact Enemy 2 2 10))
+      (state/insert (->fact Enemy 2 2 10))
       (state/query :get-enemy)
       :x
       (= 2)
@@ -22,9 +22,9 @@
                 (fn []
                   (let [enemy [Enemy]]
                     enemy))})
-      (state/insert! (->fact Enemy 0 0 10))
-      (state/insert! (->fact Enemy 1 1 10))
-      (state/insert! (->fact Enemy 2 2 10))
+      (state/insert (->fact Enemy 0 0 10))
+      (state/insert (->fact Enemy 1 1 10))
+      (state/insert (->fact Enemy 2 2 10))
       (state/query :get-enemies)
       count
       (= 3)
@@ -41,10 +41,10 @@
                           player Player]
                       [enemy player]))})
         $
-        (state/insert! $ (->fact Enemy 0 0 10))
-        (state/update! $ (state/query $ :get-enemy) {:x 1 :y 1})
-        (state/update! $ (state/query $ :get-enemy) {:x 2 :y 2})
-        (state/insert! $ (->fact Player 3 3 10))
+        (state/insert $ (->fact Enemy 0 0 10))
+        (state/update $ (state/query $ :get-enemy) {:x 1 :y 1})
+        (state/update $ (state/query $ :get-enemy) {:x 2 :y 2})
+        (state/insert $ (->fact Player 3 3 10))
         (state/query $ :get-entities)
         (let [[enemy player] $]
           (is (= (:x enemy) 2))
@@ -56,9 +56,9 @@
                   (let [enemy [Enemy]
                         :when (> (:x enemy) 0)]
                     enemy))})
-      (state/insert! (->fact Enemy 0 0 10))
-      (state/insert! (->fact Enemy 1 1 10))
-      (state/insert! (->fact Enemy 2 2 10))
+      (state/insert (->fact Enemy 0 0 10))
+      (state/insert (->fact Enemy 1 1 10))
+      (state/insert (->fact Enemy 2 2 10))
       (state/query :get-enemies)
       count
       (= 2)
@@ -78,13 +78,13 @@
                         enemy Enemy
                         :when (and (= (:x player) (:x enemy))
                                    (= (:y player) (:y enemy)))]
-                    (state/update! player {:x (inc (:x player))})
-                    (state/update! enemy {:hp (dec (:hp enemy))}))})
+                    (state/update player {:x (inc (:x player))})
+                    (state/update enemy {:hp (dec (:hp enemy))}))})
         $
-        (state/insert! $ (->fact Enemy 0 0 10))
-        (state/insert! $ (->fact Player 3 3 10))
-        (state/update! $ (state/query $ :get-player) {:x 0 :y 0})
-        (state/update! $ (state/query $ :get-player) {:x 0 :y 10})
+        (state/insert $ (->fact Enemy 0 0 10))
+        (state/insert $ (->fact Player 3 3 10))
+        (state/update $ (state/query $ :get-player) {:x 0 :y 0})
+        (state/update $ (state/query $ :get-player) {:x 0 :y 10})
         (let [{:keys [hp]} (state/query $ :get-enemy)]
           (is (= hp 9)))))
 
