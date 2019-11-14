@@ -86,10 +86,10 @@
         binding-sym (get-binding-symbol sym)
         condition (->condition bindings when-form)]
     (case (first right)
-      :latest [binding-sym '<- '(clara.rules.accumulators/max :version :returns-fact true)
-               :from (cond-> [(second right) [sym]]
-                             condition
-                             (conj condition))]
+      :latest (into [binding-sym '<-]
+                (cond-> [(second right) [sym]]
+                        condition
+                        (conj condition)))
       :all [binding-sym '<- '(clara.rules.accumulators/distinct)
             :from (cond-> [(-> right second first) [sym]]
                           condition
@@ -147,18 +147,4 @@
     {:productions productions
      :queries queries
      :query-fns @*query-fns}))
-
-(def ^:const reserved-fields '[version *version])
-
-(defn deffact* [name fields opts]
-  (let [invalid-fields (set/intersection (set reserved-fields) (set fields))
-        fields (into reserved-fields fields)]
-    (when (seq invalid-fields)
-      (throw (ex-info (str name " may not contain the following reserved fields: " invalid-fields)
-                      {:name name
-                       :invalid-fields invalid-fields})))
-    `(defrecord ~name ~fields ~@opts)))
-
-(defn ->fact* [name args]
-  `(~(symbol (str '-> name)) 0 (atom 0) ~@args))
 

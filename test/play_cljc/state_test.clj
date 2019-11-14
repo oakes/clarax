@@ -1,17 +1,17 @@
 (ns play-cljc.state-test
   (:require [clojure.test :refer :all]
             [play-cljc.state :as state]
-            [play-cljc.state.macros-java :refer [->state ->fact deffact]]))
+            [play-cljc.state.macros-java :refer [->state]]))
 
-(deffact Player [x y hp])
-(deffact Enemy [x y hp])
+(defrecord Player [x y hp])
+(defrecord Enemy [x y hp])
 
 (deftest query-enemy
   (-> (->state {:get-enemy
                 (fn []
                   (let [enemy Enemy]
                     enemy))})
-      (state/insert (->fact Enemy 2 2 10))
+      (state/insert (->Enemy 2 2 10))
       (state/query :get-enemy)
       :x
       (= 2)
@@ -22,9 +22,9 @@
                 (fn []
                   (let [enemy [Enemy]]
                     enemy))})
-      (state/insert (->fact Enemy 0 0 10))
-      (state/insert (->fact Enemy 1 1 10))
-      (state/insert (->fact Enemy 2 2 10))
+      (state/insert (->Enemy 0 0 10))
+      (state/insert (->Enemy 1 1 10))
+      (state/insert (->Enemy 2 2 10))
       (state/query :get-enemies)
       count
       (= 3)
@@ -41,10 +41,10 @@
                           player Player]
                       [enemy player]))})
         $
-        (state/insert $ (->fact Enemy 0 0 10))
+        (state/insert $ (->Enemy 0 0 10))
         (state/merge $ (state/query $ :get-enemy) {:x 1 :y 1})
         (state/merge $ (state/query $ :get-enemy) {:x 2 :y 2})
-        (state/insert $ (->fact Player 3 3 10))
+        (state/insert $ (->Player 3 3 10))
         (state/query $ :get-entities)
         (let [[enemy player] $]
           (is (= (:x enemy) 2))
@@ -56,9 +56,9 @@
                   (let [enemy [Enemy]
                         :when (> (:x enemy) 0)]
                     enemy))})
-      (state/insert (->fact Enemy 0 0 10))
-      (state/insert (->fact Enemy 1 1 10))
-      (state/insert (->fact Enemy 2 2 10))
+      (state/insert (->Enemy 0 0 10))
+      (state/insert (->Enemy 1 1 10))
+      (state/insert (->Enemy 2 2 10))
       (state/query :get-enemies)
       count
       (= 2)
@@ -81,8 +81,8 @@
                     (state/merge player {:x (inc (:x player))})
                     (state/merge enemy {:hp (dec (:hp enemy))}))})
         $
-        (state/insert $ (->fact Enemy 0 0 10))
-        (state/insert $ (->fact Player 3 3 10))
+        (state/insert $ (->Enemy 0 0 10))
+        (state/insert $ (->Player 3 3 10))
         (state/merge $ (state/query $ :get-player) {:x 0 :y 0})
         (state/merge $ (state/query $ :get-player) {:x 0 :y 10})
         (let [{:keys [hp]} (state/query $ :get-enemy)]
