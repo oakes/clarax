@@ -9,6 +9,7 @@ A library for managing state with [play-cljc](https://github.com/oakes/play-cljc
   * `clj -A:dev:linux native`
   * `clj -A:dev:macos native`
   * `clj -A:dev:windows native`
+* To run the tests: `clj -A:test`
 * To install the release version: `clj -A:prod install`
 
 ## Licensing
