@@ -4,9 +4,7 @@
             [clara.rules :as rules]))
 
 (defmacro deffact [name fields & opts]
-  (binding [build/*macro-name* (first &form)
-            *out* (java.io.StringWriter.)]
-    (build/deffact* name fields opts)))
+  (build/deffact* name fields opts))
 
 (defmacro ->state [rules-and-queries]
   (let [{:keys [productions queries query-fns]} (build/get-state rules-and-queries)]

@@ -11,21 +11,13 @@
             [clojure.walk :as walk]
             [clojure.set :as set]))
 
-(def ^:dynamic *facts* nil)
-(def ^:dynamic *macro-name* nil)
-
-(defn fact? [x]
-  (when (symbol? x)
-    (swap! *facts* conj x)
-    true))
-
 (s/def ::let-left (s/or
                     :simple symbol?
                     :destructure map?))
 
 (s/def ::let-right (s/or
-                     :latest fact?
-                     :all (s/tuple fact?)))
+                     :latest symbol?
+                     :all (s/tuple symbol?)))
 
 (s/def ::when-form (s/cat
                      :key #{:when}
@@ -60,16 +52,6 @@
   compiler/IRuleSource
   (load-rules [m]
     [m]))
-
-(defn get-delete-rules [fact-names]
-  (reduce
-    (fn [productions fact-name]
-      (conj productions
-            (dsl/build-rule (symbol (str 'delete- fact-name))
-              [['?fact '<- fact-name '(< version @*version)]
-               '=> '(play-cljc.state/delete! ?fact)])))
-    []
-    fact-names))
 
 (defn get-symbol [[kind value]]
   (case kind
@@ -149,26 +131,22 @@
           body)))))
 
 (defn get-state [body]
-  (binding [*facts* (atom #{})]
-    (let [*queries (volatile! {})
-          *query-fns (volatile! {})
-          *rules (volatile! {})
-          parsed-body (parse ::body body)
-          _ (doseq [[name [kind prod]] parsed-body]
-              (case kind
-                :query (do
-                         (vswap! *queries assoc name (build-query name prod))
-                         (vswap! *query-fns assoc name (build-return-fn prod)))
-                :rule (vswap! *rules assoc name (build-rule name prod))))
-          fact-names @*facts*
-          queries @*queries
-          delete-rules (get-delete-rules fact-names)
-          productions (-> (vec (vals @*rules))
-                          (into delete-rules)
-                          (into (vals queries)))]
-      {:productions productions
-       :queries queries
-       :query-fns @*query-fns})))
+  (let [*queries (volatile! {})
+        *query-fns (volatile! {})
+        *rules (volatile! {})
+        parsed-body (parse ::body body)
+        _ (doseq [[name [kind prod]] parsed-body]
+            (case kind
+              :query (do
+                       (vswap! *queries assoc name (build-query name prod))
+                       (vswap! *query-fns assoc name (build-return-fn prod)))
+              :rule (vswap! *rules assoc name (build-rule name prod))))
+        queries @*queries
+        productions (-> (vec (vals @*rules))
+                        (into (vals queries)))]
+    {:productions productions
+     :queries queries
+     :query-fns @*query-fns}))
 
 (def ^:const reserved-fields '[version *version])
 
