@@ -36,6 +36,11 @@
                     :binding (s/spec (s/* ::let-pair))
                     :body (s/* any?)))
 
+(s/def ::fn-form (s/cat
+                   :sym '#{fn}
+                   :args vector?
+                   :body (s/spec ::let-form)))
+
 (s/def ::query-form (s/cat
                       :symbol symbol?
                       :arrow '#{<- <<-}
@@ -52,13 +57,9 @@
                 :split '#{=>}
                 :right ::right-side))
 
-(s/def ::query (s/or
-                 :simple ::let-right
-                 :let-form ::let-form))
-
 (s/def ::body (s/map-of keyword?
                         (s/or :rule ::rule
-                              :query ::query)))
+                              :query ::fn-form)))
 
 (defn parse [spec content]
   (let [res (s/conform spec content)]
@@ -104,43 +105,40 @@
   (case kind
     :simple value))
 
-(defn get-symbols [bindings]
-  (reduce
-    (fn [v {:keys [left]}]
-      (conj v (get-symbol left)))
-    []
-    bindings))
+(defn get-binding-symbol [sym]
+  (symbol (str '? sym)))
 
-(defn get-queries [kind value]
-  (case kind
-    :simple
-    [{:left [:simple '?ret]
-      :right value}]
-    :let-form
-    (:binding value)))
-
-(defn build-query [name [kind value]]
-  (->> (get-queries kind value)
+(defn build-query [name fn-form]
+  (->> fn-form
+       :body
+       :binding
        (reduce
          (fn [exprs {:keys [left right]}]
-           (conj exprs
-             (into
-               [(get-symbol left) '<-]
-               (case (first right)
-                 :latest ['(clara.rules.accumulators/max :version :returns-fact true)
-                          :from [(second right)]]
-                 :all ['(clara.rules.accumulators/distinct)
-                       :from [(-> right second first)]]))))
-         [[]])
+           (let [sym (get-symbol left)
+                 binding-sym (get-binding-symbol sym)]
+             (conj exprs
+               (into
+                 [binding-sym '<-]
+                 (case (first right)
+                   :latest ['(clara.rules.accumulators/max :version :returns-fact true)
+                            :from [(second right) [sym]]]
+                   :all ['(clara.rules.accumulators/distinct)
+                         :from [(-> right second first) [sym]]])))))
+         [(:args fn-form)])
        (dsl/build-query (symbol name))))
 
-(defn build-return-fn [[kind value]]
-  (case kind
-    :simple :?ret
-    :let-form
-    `(fn [ret#]
-       (let [{:keys ~(get-symbols (:binding value))} ret#]
-         ~@(:body value)))))
+(defn destructure-symbols [bindings]
+  (reduce
+    (fn [m {:keys [left]}]
+      (let [sym (get-symbol left)]
+        (assoc m sym (-> sym get-binding-symbol keyword))))
+    {}
+    bindings))
+
+(defn build-return-fn [fn-form]
+  `(fn [ret#]
+     (let [~(destructure-symbols (-> fn-form :body :binding)) ret#]
+       ~@(-> fn-form :body :body))))
 
 (defn build-rule [name {:keys [left right]}]
   (dsl/build-rule (symbol name)

@@ -5,19 +5,22 @@
 
 (deffact Enemy [x y])
 
-(deftest simple-query
-  (-> (->state {:get-enemies [Enemy]})
+(deftest query-latest
+  (-> (->state {:get-enemy (fn []
+                             (let [enemy Enemy]
+                               enemy))})
       (state/insert! (->fact Enemy 0 0))
       (state/insert! (->fact Enemy 1 1))
       (state/insert! (->fact Enemy 2 2))
-      (state/query :get-enemies)
-      count
-      (= 3)
+      (state/query :get-enemy)
+      :x
+      (= 2)
       is))
 
-(deftest let-query
-  (-> (->state {:get-enemies (let [?enemies [Enemy]]
-                               ?enemies)})
+(deftest query-multiple
+  (-> (->state {:get-enemies (fn []
+                               (let [enemies [Enemy]]
+                                 enemies))})
       (state/insert! (->fact Enemy 0 0))
       (state/insert! (->fact Enemy 1 1))
       (state/insert! (->fact Enemy 2 2))
