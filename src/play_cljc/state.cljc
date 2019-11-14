@@ -49,10 +49,12 @@
          (insert! (merge fact new-args))))))
 
 (defn- get-query [state query-name]
-  (or (when (map? query-name)
-        query-name)
-      (get (:queries state) query-name)
+  (or (get (:queries state) query-name)
       (throw (ex-info (str "Query for " query-name " not found") {}))))
+
+(defn- get-query-fn [state query-name]
+  (or (get (:query-fns state) query-name)
+      :?ret))
 
 (defn query
   ([state query-name]
@@ -62,5 +64,5 @@
            :session
            (engine/query (get-query state query-name) params)
            first
-           :?ret)))
+           ((get-query-fn state query-name)))))
 

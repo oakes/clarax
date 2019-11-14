@@ -33,7 +33,8 @@
 
 (s/def ::let-form (s/cat
                     :sym '#{let}
-                    :binding (s/spec (s/* ::let-pair))))
+                    :binding (s/spec (s/* ::let-pair))
+                    :body (s/* any?)))
 
 (s/def ::query-form (s/cat
                       :symbol symbol?
@@ -99,23 +100,47 @@
       [symbol '<- '(clara.rules.accumulators/distinct)
        :from query])))
 
-(defn get-record [kind value]
+(defn get-symbol [[kind value]]
+  (case kind
+    :simple value))
+
+(defn get-symbols [bindings]
+  (reduce
+    (fn [v {:keys [left]}]
+      (conj v (get-symbol left)))
+    []
+    bindings))
+
+(defn get-queries [kind value]
   (case kind
     :simple
-    (case (first value)
-      :latest (second value)
-      :all (first (second value)))))
+    [{:left [:simple '?ret]
+      :right value}]
+    :let-form
+    (:binding value)))
 
 (defn build-query [name [kind value]]
-  (let [record (get-record kind value)]
-    (dsl/build-query (symbol name)
-      (list [] ['?ret '<-
-                (case kind
-                  :simple
-                  (case (first value)
-                    :latest '(clara.rules.accumulators/max :version :returns-fact true)
-                    :all '(clara.rules.accumulators/distinct)))
-                :from [record]]))))
+  (->> (get-queries kind value)
+       (reduce
+         (fn [exprs {:keys [left right]}]
+           (conj exprs
+             (into
+               [(get-symbol left) '<-]
+               (case (first right)
+                 :latest ['(clara.rules.accumulators/max :version :returns-fact true)
+                          :from [(second right)]]
+                 :all ['(clara.rules.accumulators/distinct)
+                       :from [(-> right second first)]]))))
+         [[]])
+       (dsl/build-query (symbol name))))
+
+(defn build-return-fn [[kind value]]
+  (case kind
+    :simple :?ret
+    :let-form
+    `(fn [ret#]
+       (let [{:keys ~(get-symbols (:binding value))} ret#]
+         ~@(:body value)))))
 
 (defn build-rule [name {:keys [left right]}]
   (dsl/build-rule (symbol name)
@@ -127,11 +152,14 @@
 (defn get-state [body]
   (binding [*facts* (atom #{})]
     (let [*queries (volatile! {})
+          *query-fns (volatile! {})
           *rules (volatile! {})
           parsed-body (parse ::body body)
           _ (doseq [[name [kind prod]] parsed-body]
               (case kind
-                :query (vswap! *queries assoc name (build-query name prod))
+                :query (do
+                         (vswap! *queries assoc name (build-query name prod))
+                         (vswap! *query-fns assoc name (build-return-fn prod)))
                 :rule (vswap! *rules assoc name (build-rule name prod))))
           fact-names @*facts*
           fact-queries (get-fact-queries fact-names)
@@ -142,7 +170,8 @@
                           (into (vals queries))
                           (into (vals fact-queries)))]
       {:productions productions
-       :queries (merge queries fact-queries)})))
+       :queries (merge queries fact-queries)
+       :query-fns @*query-fns})))
 
 (def ^:const reserved-fields '[version *version])
 

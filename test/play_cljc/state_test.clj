@@ -15,3 +15,14 @@
       (= 3)
       is))
 
+(deftest let-query
+  (-> (->state {:get-enemies (let [?enemies [Enemy]]
+                               ?enemies)})
+      (state/insert! (->fact Enemy 0 0))
+      (state/insert! (->fact Enemy 1 1))
+      (state/insert! (->fact Enemy 2 2))
+      (state/query :get-enemies)
+      count
+      (= 3)
+      is))
+

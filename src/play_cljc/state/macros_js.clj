@@ -9,11 +9,12 @@
     (build/deffact* name fields opts)))
 
 (defmacro ->state [rules-and-queries]
-  (let [{:keys [productions queries]} (build/get-state rules-and-queries)]
+  (let [{:keys [productions queries query-fns]} (build/get-state rules-and-queries)]
     {:session (-> productions
                   eval
                   (macros/productions->session-assembly-form []))
-     :queries queries}))
+     :queries queries
+     :query-fns query-fns}))
 
 (defmacro ->fact [name & args]
   (build/->fact* name args))
