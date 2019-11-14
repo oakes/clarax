@@ -19,11 +19,6 @@
     (swap! *facts* conj x)
     true))
 
-(s/def ::when-form (s/cat
-                     :sym '#{when}
-                     :condition list?
-                     :body (s/* any?)))
-
 (s/def ::let-left (s/or
                     :simple symbol?
                     :destructure map?))
@@ -32,15 +27,19 @@
                      :latest fact?
                      :all (s/tuple fact?)))
 
+(s/def ::when-form (s/cat
+                     :key #{:when}
+                     :condition list?))
+
 (s/def ::let-pair (s/cat
                     :left ::let-left
-                    :right ::let-right))
+                    :right ::let-right
+                    :when-form (s/? ::when-form)))
 
 (s/def ::let-form (s/cat
                     :sym '#{let}
                     :binding (s/spec (s/* ::let-pair))
-                    :body (s/alt :condition (s/spec ::when-form)
-                                 :non-condition (s/* any?))))
+                    :body (s/* any?)))
 
 (s/def ::fn-form (s/cat
                    :sym '#{fn}
@@ -114,21 +113,15 @@
 (defn get-binding-symbol [sym]
   (symbol (str '? sym)))
 
-(defn get-condition [fn-form]
-  (let [[kind value] (-> fn-form :body :body)]
-    (case kind
-      :condition (:condition value)
-      :non-condition nil)))
-
 (defn build-query [name fn-form]
   (->> fn-form
        :body
        :binding
        (reduce
-         (fn [exprs {:keys [left right]}]
+         (fn [exprs {:keys [left right when-form]}]
            (let [sym (get-symbol left)
                  binding-sym (get-binding-symbol sym)
-                 condition (get-condition fn-form)]
+                 condition (:condition when-form)]
              (conj exprs
                (into
                  [binding-sym '<-]
@@ -152,16 +145,10 @@
     {}
     bindings))
 
-(defn get-fn-body [fn-form]
-  (let [[kind value] (-> fn-form :body :body)]
-    (case kind
-      :condition (:body value)
-      :non-condition value)))
-
 (defn build-return-fn [fn-form]
   `(fn [ret#]
      (let [~(destructure-symbols (-> fn-form :body :binding)) ret#]
-       ~@(get-fn-body fn-form))))
+       ~@(-> fn-form :body :body))))
 
 (defn build-rule [name {:keys [left right]}]
   (dsl/build-rule (symbol name)
