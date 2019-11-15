@@ -75,25 +75,37 @@
     {}
     pairs))
 
-(defn ->condition [bindings when-form]
-  (when-let [condition (:condition when-form)]
+(defn wrap-in-let [bindings body]
+  (if (and (seq bindings) (coll? body))
     (list 'let
-          (reduce into (->destructure-pairs bindings))
-          condition)))
+      (reduce into (->destructure-pairs bindings))
+      body)
+    body))
+
+(defn ->conditions [bindings {:keys [condition] :as when-form}]
+  (let [conditions (cond
+                     (nil? condition) []
+                     (= 'and (first condition)) (drop 1 condition)
+                     :else [condition])]
+    (mapv (fn [condition]
+            (if (= '= (first condition))
+              (->> (rest condition)
+                   (map (partial wrap-in-let bindings))
+                   (cons '=))
+              (wrap-in-let bindings condition)))
+          conditions)))
 
 (defn transform-let-binding [bindings {:keys [left right when-form]}]
   (let [sym (get-symbol left)
         binding-sym (get-binding-symbol sym)
-        condition (->condition bindings when-form)]
+        conditions (->conditions bindings when-form)]
     (case (first right)
       :latest (into [binding-sym '<-]
-                (cond-> [(second right) [sym]]
-                        condition
-                        (conj condition)))
+                (into [(second right) [sym]]
+                      conditions))
       :all [binding-sym '<- '(clara.rules.accumulators/distinct)
-            :from (cond-> [(-> right second first) [sym]]
-                          condition
-                          (conj condition))])))
+            :from (into [(-> right second first) [sym]]
+                        conditions)])))
 
 (defn transform-let-bindings [bindings]
   (:ret

@@ -54,7 +54,7 @@
   (-> (->state {:get-enemies
                 (fn []
                   (let [enemy [Enemy]
-                        :when (> (:x enemy) 0)]
+                        :when (>= (:x enemy) 1)]
                     enemy))})
       (state/insert (->Enemy 0 0 10))
       (state/insert (->Enemy 1 1 10))
@@ -62,6 +62,20 @@
       (state/query :get-enemies)
       count
       (= 2)
+      is))
+
+(deftest query-parameter
+  (-> (->state {:get-enemy
+                (fn [:?x :?y]
+                  (let [player Player
+                        enemy Enemy
+                        :when (and (= (:x enemy) ?x)
+                                   (= (:y enemy) ?y))]
+                    enemy))})
+      (state/insert (->Enemy 1 0 10))
+      (state/insert (->Player 3 3 10))
+      (state/query :get-enemy {:?x 1 :?y 0})
+      record?
       is))
 
 (deftest query-and-rule
