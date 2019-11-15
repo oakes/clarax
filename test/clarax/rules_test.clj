@@ -101,3 +101,35 @@
         (let [{:keys [hp]} (clara/query $ :get-enemy)]
           (is (= hp 9)))))
 
+(def player-queries
+  '{:get-player
+    (fn []
+      (let [player Player]
+        player))
+    :get-players
+    (fn []
+      (let [player [Player]]
+        player))})
+
+(def enemy-queries
+  '{:get-enemy
+    (fn []
+      (let [enemy Enemy]
+        enemy))
+    :get-enemies
+    (fn []
+      (let [enemy [Enemy]]
+        enemy))})
+
+(defmacro ->rules-and-queries []
+  '`~(merge player-queries enemy-queries))
+
+(deftest query-with-macro
+  (-> (->session (->rules-and-queries))
+      (clara/insert (->Enemy 0 0 10))
+      (clara/insert (->Player 3 3 10))
+      (clara/query :get-player)
+      :x
+      (= 3)
+      is))
+
