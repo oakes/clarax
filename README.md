@@ -1,11 +1,11 @@
 ## Introduction
 
-A library providing alternative syntax for [Clara](https://github.com/cerner/clara-rules).
+A library providing alternative syntax on top of [Clara Rules](https://github.com/cerner/clara-rules). After deep contemplation, thorough discussion with the greatest minds I know, and summoning the willpower of a Greek god, I decided to resist calling it O'Doyle Rules. You are welcome.
 
 ## Development
 
 * Install [the Clojure CLI tool](https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools)
-* To develop the native version on each OS:
+* To develop on each OS:
   * `clj -A:dev:linux native`
   * `clj -A:dev:macos native`
   * `clj -A:dev:windows native`
