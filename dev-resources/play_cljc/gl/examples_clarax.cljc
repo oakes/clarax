@@ -11,8 +11,8 @@
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
             #?(:clj [dynadoc.example :refer [defexample]])
-            #?(:clj  [clarax.macros-java :refer [->state]]
-               :cljs [clarax.macros-js :refer-macros [->state]]))
+            #?(:clj  [clarax.macros-java :refer [->session]]
+               :cljs [clarax.macros-js :refer-macros [->session]]))
   #?(:cljs (:require-macros [dynadoc.example :refer [defexample]])))
 
 (defrecord Rect [x y width height])
@@ -20,7 +20,7 @@
 
 (def *state
   (atom
-    (->state
+    (->session
       {:get-rect
        (fn []
          (let [rect Rect]

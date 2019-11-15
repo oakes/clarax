@@ -3,8 +3,8 @@
             [clara.rules.compiler :as compiler]
             [clara.rules :as rules]))
 
-(defmacro ->state [rules-and-queries]
-  (let [{:keys [productions queries query-fns]} (parse/get-state rules-and-queries)]
+(defmacro ->session [rules-and-queries]
+  (let [{:keys [productions queries query-fns]} (parse/->productions rules-and-queries)]
     `(clarax.rules.Session. (compiler/mk-session ~productions)
                             ~queries
                             ~query-fns)))

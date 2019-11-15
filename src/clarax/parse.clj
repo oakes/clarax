@@ -145,7 +145,7 @@
           (list 'let (reduce into (->destructure-pairs bindings)))
           body)))))
 
-(defn get-state [body]
+(defn ->productions [body]
   (let [*queries (volatile! {})
         *query-fns (volatile! {})
         *rules (volatile! {})
