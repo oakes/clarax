@@ -3,13 +3,9 @@
             [clara.rules.compiler :as compiler]
             [clara.rules :as rules]
             [clara.rules.dsl :as dsl]
-            [clojure.java.io :as io]
-            [clojure.tools.reader :as r]
-            [clojure.tools.reader.reader-types :refer [indexing-push-back-reader]]
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [clojure.walk :as walk]
-            [clojure.set :as set]
             [clojure.string :as str]))
 
 (s/def ::let-left (s/or
