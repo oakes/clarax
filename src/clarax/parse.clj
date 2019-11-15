@@ -8,9 +8,11 @@
             [clojure.walk :as walk]
             [clojure.string :as str]))
 
+(s/def ::as symbol?)
+
 (s/def ::let-left (s/or
                     :simple symbol?
-                    :destructure map?))
+                    :destructure (s/keys :req-un [::as])))
 
 (s/def ::let-right (s/or
                      :latest symbol?
@@ -38,8 +40,8 @@
                    :body (s/spec ::let-form)))
 
 (s/def ::body (s/map-of keyword?
-                        (s/or :rule ::let-form
-                              :query ::fn-form)))
+                        (s/or :query ::fn-form
+                              :rule ::let-form)))
 
 (defn parse [spec content]
   (let [res (s/conform spec content)]
@@ -54,7 +56,8 @@
 
 (defn get-symbol [[kind value]]
   (case kind
-    :simple value))
+    :simple value
+    :destructure (:as value)))
 
 (defn get-binding-symbol [sym]
   (symbol (str '? sym)))
@@ -96,14 +99,15 @@
 
 (defn transform-let-binding [bindings {:keys [left right when-form]}]
   (let [sym (get-symbol left)
+        destructure-sym (second left)
         binding-sym (get-binding-symbol sym)
         conditions (->conditions bindings when-form)]
     (case (first right)
       :latest (into [binding-sym '<-]
-                (into [(second right) [sym]]
+                (into [(second right) [destructure-sym]]
                       conditions))
       :all [binding-sym '<- '(clara.rules.accumulators/distinct)
-            :from (into [(-> right second first) [sym]]
+            :from (into [(-> right second first) [destructure-sym]]
                         conditions)])))
 
 (defn transform-let-bindings [bindings]

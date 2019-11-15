@@ -54,8 +54,8 @@
 (deftest query-condition
   (-> (->session {:get-enemies
                   (fn []
-                    (let [enemy [Enemy]
-                          :when (>= (:x enemy) 1)]
+                    (let [{:keys [x] :as enemy} [Enemy]
+                          :when (>= x 1)]
                       enemy))})
       (clara/insert (->Enemy 0 0 10))
       (clara/insert (->Enemy 1 1 10))
@@ -69,9 +69,8 @@
   (-> (->session {:get-enemy
                   (fn [?x ?y]
                     (let [player Player
-                          enemy Enemy
-                          :when (and (= (:x enemy) ?x)
-                                     (= (:y enemy) ?y))]
+                          {:keys [x y] :as enemy} Enemy
+                          :when (and (= x ?x) (= y ?y))]
                       enemy))})
       (clara/insert (->Enemy 1 0 10))
       (clara/insert (->Player 3 3 10))
@@ -90,9 +89,9 @@
                         enemy))
                     :hurt-enemy
                     (let [player Player
-                          enemy Enemy
-                          :when (and (= (:x player) (:x enemy))
-                                     (= (:y player) (:y enemy)))]
+                          {:keys [x y] :as enemy} Enemy
+                          :when (and (= (:x player) x)
+                                     (= (:y player) y))]
                       (clarax/update! player :x inc)
                       (clarax/update! enemy :hp dec))})
         $
