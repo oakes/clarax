@@ -134,3 +134,32 @@
       (= 3)
       is))
 
+(deftest rule-with-join
+  (let [session (->session
+                  {:overlapping
+                   (let [player Player
+                         :when (= ?x (:x player))
+                         enemy Enemy
+                         :when (= ?x (:x enemy))]
+                     (clarax/merge! player (-> player
+                                               (update :x inc)
+                                               (update :hp - 2))))
+                   :get-player
+                   (fn []
+                     (let [player Player]
+                       player))})]
+    (testing "they are overlapping, so the player's health should decrease"
+      (-> session
+          (clara/insert (->Enemy 1 1 10) (->Player 1 1 10))
+          (clara/query :get-player)
+          :hp
+          (= 8)
+          is))
+    (testing "they are not overlapping, so the player's health should not change"
+      (-> session
+          (clara/insert (->Enemy 0 1 10) (->Player 1 1 10))
+          (clara/query :get-player)
+          :hp
+          (= 10)
+          is))))
+
