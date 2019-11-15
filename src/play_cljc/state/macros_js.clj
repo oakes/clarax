@@ -5,9 +5,9 @@
 
 (defmacro ->state [rules-and-queries]
   (let [{:keys [productions queries query-fns]} (build/get-state rules-and-queries)]
-    {:session (-> productions
-                  eval
-                  (macros/productions->session-assembly-form []))
-     :queries queries
-     :query-fns query-fns}))
+    `(play-cljc.state.Session. ~(-> productions
+                                    eval
+                                    (macros/productions->session-assembly-form []))
+                               ~queries
+                               ~query-fns)))
 

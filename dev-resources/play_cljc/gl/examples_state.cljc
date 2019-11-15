@@ -7,6 +7,7 @@
             [play-cljc.instances :as i]
             [play-cljc.primitives-2d :as primitives]
             [play-cljc.state :as state]
+            [clara.rules :as clara]
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
             #?(:clj [dynadoc.example :refer [defexample]])
@@ -33,28 +34,28 @@
              rect Rect
              :when (> (+ (:x rect) (:width rect))
                       (:width game))]
-         (state/merge ?rect {:x (- (:width game) (:width rect))}))
+         (state/merge! ?rect {:x (- (:width game) (:width rect))}))
        :bottom-boundary
        (let [game Game
              rect Rect
              :when (> (+ (:y rect) (:height rect))
                       (:height game))]
-         (state/merge rect {:y (- (:height game) (:height rect))}))})))
+         (state/merge! rect {:y (- (:height game) (:height rect))}))})))
 
-(swap! *state state/insert (->Rect 50 50 100 100))
+(swap! *state clara/insert (->Rect 50 50 100 100))
 
 ;; rect
 
 (defn rect-example [game]
   (gl game disable (gl game CULL_FACE))
   (gl game disable (gl game DEPTH_TEST))
-  (swap! *state state/insert (->Game (eu/get-width game) (eu/get-height game)))
+  (swap! *state clara/insert (->Game (eu/get-width game) (eu/get-height game)))
   (let [*mouse-state (atom {})]
     (add-watch *mouse-state :mouse-moved
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
-                          (let [fact (state/query state :get-rect)]
+                          (let [fact (clara/query state :get-rect)]
                             (state/merge state fact (select-keys new-mouse-state [:x :y])))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
@@ -77,8 +78,8 @@
        (play-cljc.gl.example-utils/game-loop
          (fn rect-render [{:keys [entity] :as game}]
            (play-cljc.gl.example-utils/resize-example game)
-           (println (count (play-cljc.state/query @play-cljc.gl.examples-state/*state :get-rects)))
-           (let [{:keys [x y width height]} (play-cljc.state/query @play-cljc.gl.examples-state/*state :get-rect)]
+           (println (count (clara.rules/query @play-cljc.gl.examples-state/*state :get-rects)))
+           (let [{:keys [x y width height]} (clara.rules/query @play-cljc.gl.examples-state/*state :get-rect)]
              (let [game-width (play-cljc.gl.example-utils/get-width game)
                    game-height (play-cljc.gl.example-utils/get-height game)]
                focus))
