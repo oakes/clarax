@@ -17,10 +17,10 @@
   (figwheel/-main "--build" "dev"))
 
 (require '[play-cljc.dev :as dev]
-         '[play-cljc.gl.examples-state])
+         '[play-cljc.gl.examples-clarax])
 
 (defmethod task "native"
   [_]
-  (dev/start '[play-cljc.state]))
+  (dev/start '[play-cljc.gl.examples-clarax]))
 
 (task *command-line-args*)

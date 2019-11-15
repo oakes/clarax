@@ -1,6 +1,6 @@
 ## Introduction
 
-A library for managing state with [play-cljc](https://github.com/oakes/play-cljc).
+A library providing alternative syntax for [Clara](https://github.com/cerner/clara-rules).
 
 ## Development
 

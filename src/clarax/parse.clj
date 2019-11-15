@@ -1,5 +1,5 @@
-(ns play-cljc.state.build
-  (:require [play-cljc.state]
+(ns clarax.parse
+  (:require [clarax.rules]
             [clara.rules.compiler :as compiler]
             [clara.rules :as rules]
             [clara.rules.dsl :as dsl]

@@ -1,4 +1,4 @@
-(ns play-cljc.state
+(ns clarax.rules
   (:require [clara.rules :as rules]
             [clara.rules.engine :as engine]
             [clara.rules.accumulators])

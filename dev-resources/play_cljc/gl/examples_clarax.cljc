@@ -1,4 +1,4 @@
-(ns play-cljc.gl.examples-state
+(ns play-cljc.gl.examples-clarax
   (:require [play-cljc.gl.core :as c]
             [play-cljc.gl.entities-2d :as e]
             [play-cljc.gl.example-utils :as eu]
@@ -6,13 +6,13 @@
             [play-cljc.transforms :as t]
             [play-cljc.instances :as i]
             [play-cljc.primitives-2d :as primitives]
-            [play-cljc.state :as state]
             [clara.rules :as clara]
+            [clarax.rules :as clarax]
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
             #?(:clj [dynadoc.example :refer [defexample]])
-            #?(:clj  [play-cljc.state.macros-java :refer [->state]]
-               :cljs [play-cljc.state.macros-js :refer-macros [->state]]))
+            #?(:clj  [clarax.macros-java :refer [->state]]
+               :cljs [clarax.macros-js :refer-macros [->state]]))
   #?(:cljs (:require-macros [dynadoc.example :refer [defexample]])))
 
 (defrecord Rect [x y width height])
@@ -34,13 +34,13 @@
              rect Rect
              :when (> (+ (:x rect) (:width rect))
                       (:width game))]
-         (state/merge! ?rect {:x (- (:width game) (:width rect))}))
+         (clarax/merge! ?rect {:x (- (:width game) (:width rect))}))
        :bottom-boundary
        (let [game Game
              rect Rect
              :when (> (+ (:y rect) (:height rect))
                       (:height game))]
-         (state/merge! rect {:y (- (:height game) (:height rect))}))})))
+         (clarax/merge! rect {:y (- (:height game) (:height rect))}))})))
 
 (swap! *state clara/insert (->Rect 50 50 100 100))
 
@@ -56,14 +56,14 @@
                  (swap! *state
                         (fn [state]
                           (let [fact (clara/query state :get-rect)]
-                            (state/merge state fact (select-keys new-mouse-state [:x :y])))))))
+                            (clarax/merge state fact (select-keys new-mouse-state [:x :y])))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})
        (c/compile game)
        (assoc game :entity)))
 
-(defexample play-cljc.state/rect-example
+(defexample rect-example
   {:with-card card
    :with-focus [focus (play-cljc.gl.core/render game
                         (-> (assoc entity :viewport {:x 0 :y 0
@@ -74,12 +74,12 @@
                             (play-cljc.transforms/translate x y)
                             (play-cljc.transforms/scale width height)))]}
   (->> (play-cljc.gl.example-utils/init-example card)
-       (play-cljc.gl.examples-state/rect-example)
+       (play-cljc.gl.examples-clarax/rect-example)
        (play-cljc.gl.example-utils/game-loop
          (fn rect-render [{:keys [entity] :as game}]
            (play-cljc.gl.example-utils/resize-example game)
-           (println (count (clara.rules/query @play-cljc.gl.examples-state/*state :get-rects)))
-           (let [{:keys [x y width height]} (clara.rules/query @play-cljc.gl.examples-state/*state :get-rect)]
+           (println (count (clara.rules/query @play-cljc.gl.examples-clarax/*state :get-rects)))
+           (let [{:keys [x y width height]} (clara.rules/query @play-cljc.gl.examples-clarax/*state :get-rect)]
              (let [game-width (play-cljc.gl.example-utils/get-width game)
                    game-height (play-cljc.gl.example-utils/get-height game)]
                focus))

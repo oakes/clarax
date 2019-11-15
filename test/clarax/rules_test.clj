@@ -1,7 +1,7 @@
-(ns play-cljc.state-test
+(ns clarax.rules-test
   (:require [clojure.test :refer :all]
-            [play-cljc.state :as state]
-            [play-cljc.state.macros-java :refer [->state]]
+            [clarax.macros-java :refer [->state]]
+            [clarax.rules :as clarax]
             [clara.rules :as clara]))
 
 (defrecord Player [x y hp])
@@ -43,8 +43,8 @@
                       [enemy player]))})
         $
         (clara/insert $ (->Enemy 0 0 10))
-        (state/merge $ (clara/query $ :get-enemy) {:x 1 :y 1})
-        (state/merge $ (clara/query $ :get-enemy) {:x 2 :y 2})
+        (clarax/merge $ (clara/query $ :get-enemy) {:x 1 :y 1})
+        (clarax/merge $ (clara/query $ :get-enemy) {:x 2 :y 2})
         (clara/insert $ (->Player 3 3 10))
         (clara/query $ :get-entities)
         (let [[enemy player] $]
@@ -93,13 +93,13 @@
                         enemy Enemy
                         :when (and (= (:x player) (:x enemy))
                                    (= (:y player) (:y enemy)))]
-                    (state/merge! player {:x (inc (:x player))})
-                    (state/merge! enemy {:hp (dec (:hp enemy))}))})
+                    (clarax/merge! player {:x (inc (:x player))})
+                    (clarax/merge! enemy {:hp (dec (:hp enemy))}))})
         $
         (clara/insert $ (->Enemy 0 0 10))
         (clara/insert $ (->Player 3 3 10))
-        (state/merge $ (clara/query $ :get-player) {:x 0 :y 0})
-        (state/merge $ (clara/query $ :get-player) {:x 0 :y 10})
+        (clarax/merge $ (clara/query $ :get-player) {:x 0 :y 0})
+        (clarax/merge $ (clara/query $ :get-player) {:x 0 :y 10})
         (let [{:keys [hp]} (clara/query $ :get-enemy)]
           (is (= hp 9)))))
 
