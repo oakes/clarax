@@ -8,22 +8,17 @@
   (when-not engine/*rule-context*
     (throw (ex-info "No session found. You must use the other arity of this function." {}))))
 
-(defn- inc-version [fact]
-  (if-let [*version (:*version fact)]
-    (assoc fact :version (swap! *version inc))
-    fact))
-
 (defn insert
   ([fact]
    (check-for-context)
-   (rules/insert! (inc-version fact)))
+   (rules/insert! fact))
   ([state fact]
    (if engine/*rule-context*
      (do (insert fact) state)
      (update state :session
              (fn [session]
                (-> session
-                   (rules/insert (inc-version fact))
+                   (rules/insert fact)
                    rules/fire-rules))))))
 
 (defn delete
@@ -43,7 +38,7 @@
   ([fact new-args]
    (check-for-context)
    (rules/retract! fact)
-   (rules/insert-unconditional! (inc-version (clojure.core/merge fact new-args))))
+   (rules/insert-unconditional! (clojure.core/merge fact new-args)))
   ([state fact new-args]
    (if engine/*rule-context*
      (do (merge fact new-args) state)
