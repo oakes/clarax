@@ -9,7 +9,8 @@
             [clojure.spec.alpha :as s]
             [expound.alpha :as expound]
             [clojure.walk :as walk]
-            [clojure.set :as set]))
+            [clojure.set :as set]
+            [clojure.string :as str]))
 
 (s/def ::let-left (s/or
                     :simple symbol?
@@ -35,7 +36,9 @@
 
 (s/def ::fn-form (s/cat
                    :sym '#{fn}
-                   :args vector?
+                   :args (s/coll-of (s/and symbol?
+                                           #(str/starts-with? (str %) "?"))
+                                    :kind vector?)
                    :body (s/spec ::let-form)))
 
 (s/def ::body (s/map-of keyword?
@@ -124,7 +127,7 @@
        :body
        :bindings
        transform-let-bindings
-       (cons (:args fn-form))
+       (cons (->> fn-form :args (mapv keyword)))
        (dsl/build-query (symbol name))))
 
 (defn build-return-fn [fn-form]

@@ -66,7 +66,7 @@
 
 (deftest query-parameter
   (-> (->state {:get-enemy
-                (fn [:?x :?y]
+                (fn [?x ?y]
                   (let [player Player
                         enemy Enemy
                         :when (and (= (:x enemy) ?x)
