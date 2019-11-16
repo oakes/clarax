@@ -19,9 +19,7 @@
 (defrecord Game [width height])
 
 (def *state
-  (atom
-    (->session
-      {:get-rect
+  (-> {:get-rect
        (fn []
          (let [rect Rect]
            rect))
@@ -40,9 +38,10 @@
              rect Rect
              :when (> (+ (:y rect) (:height rect))
                       (:height game))]
-         (clarax/merge! rect {:y (- (:height game) (:height rect))}))})))
-
-(swap! *state clara/insert (->Rect 50 50 100 100))
+         (clarax/merge! rect {:y (- (:height game) (:height rect))}))}
+      ->session
+      (clara/insert (->Rect 50 50 100 100))
+      atom))
 
 ;; rect
 
