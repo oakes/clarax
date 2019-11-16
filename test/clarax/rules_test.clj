@@ -177,17 +177,28 @@
           (= 10)
           is))))
 
-(deftest query-accumulator
-  (-> (->session {:get-enemies
-                  (fn []
-                    (let [enemy [Enemy (acc/all)]]
-                      enemy))})
-      (clara/insert (->Enemy 0 0 10))
-      (clara/insert (->Enemy 1 1 10))
-      (clara/insert (->Enemy 2 2 10))
-      clara/fire-rules
-      (clara/query :get-enemies)
-      count
-      (= 3)
-      is))
+(deftest query-accumulators
+  (let [session (-> {:get-enemies
+                     (fn []
+                       (let [enemy [Enemy (acc/all)]]
+                         enemy))
+                     :get-weakest-enemy
+                     (fn []
+                       (let [enemy [Enemy (acc/min :hp :returns-fact true)]]
+                         enemy))}
+                    ->session
+                    (clara/insert (->Enemy 0 0 10))
+                    (clara/insert (->Enemy 1 1 8))
+                    (clara/insert (->Enemy 2 2 6))
+                    clara/fire-rules)]
+    (-> session
+        (clara/query :get-enemies)
+        count
+        (= 3)
+        is)
+    (-> session
+        (clara/query :get-weakest-enemy)
+        :hp
+        (= 6)
+        is)))
 
