@@ -11,11 +11,9 @@
   engine/ISession
   (insert [this facts]
     (-> (engine/insert session facts)
-        rules/fire-rules
         (Session. queries query-fns)))
   (retract [this facts]
     (-> (engine/retract session facts)
-        rules/fire-rules
         (Session. queries query-fns)))
   (fire-rules [this]
     (-> (engine/fire-rules session)
@@ -35,7 +33,6 @@
     (-> session
         (rules/retract fact)
         (rules/insert (clojure.core/merge fact new-args))
-        rules/fire-rules
         (Session. queries query-fns))))
 
 (defn merge! [fact new-args]

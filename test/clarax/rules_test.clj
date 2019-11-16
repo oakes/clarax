@@ -13,6 +13,7 @@
                     (let [enemy Enemy]
                       enemy))})
       (clara/insert (->Enemy 2 2 10))
+      clara/fire-rules
       (clara/query :get-enemy)
       :x
       (= 2)
@@ -26,6 +27,7 @@
       (clara/insert (->Enemy 0 0 10))
       (clara/insert (->Enemy 1 1 10))
       (clara/insert (->Enemy 2 2 10))
+      clara/fire-rules
       (clara/query :get-enemies)
       count
       (= 3)
@@ -43,9 +45,11 @@
                         [enemy player]))})
         $
         (clara/insert $ (->Enemy 0 0 10))
+        (clara/fire-rules $)
         (clarax/merge $ (clara/query $ :get-enemy) {:x 1 :y 1})
         (clarax/merge $ (clara/query $ :get-enemy) {:x 2 :y 2})
         (clara/insert $ (->Player 3 3 10))
+        (clara/fire-rules $)
         (clara/query $ :get-entities)
         (let [[enemy player] $]
           (is (= (:x enemy) 2))
@@ -60,6 +64,7 @@
       (clara/insert (->Enemy 0 0 10))
       (clara/insert (->Enemy 1 1 10))
       (clara/insert (->Enemy 2 2 10))
+      clara/fire-rules
       (clara/query :get-enemies)
       count
       (= 2)
@@ -74,6 +79,7 @@
                       enemy))})
       (clara/insert (->Enemy 1 0 10))
       (clara/insert (->Player 3 3 10))
+      clara/fire-rules
       (clara/query :get-enemy :?x 1 :?y 0)
       record?
       is))
@@ -97,8 +103,10 @@
         $
         (clara/insert $ (->Enemy 0 0 10))
         (clara/insert $ (->Player 3 3 10))
+        (clara/fire-rules $)
         (clarax/merge $ (clara/query $ :get-player) {:x 0 :y 0})
         (clarax/merge $ (clara/query $ :get-player) {:x 0 :y 10})
+        (clara/fire-rules $)
         (let [{:keys [hp]} (clara/query $ :get-enemy)]
           (is (= hp 9)))))
 
@@ -129,6 +137,7 @@
   (-> (->session*)
       (clara/insert (->Enemy 0 0 10))
       (clara/insert (->Player 3 3 10))
+      clara/fire-rules
       (clara/query :get-player)
       :x
       (= 3)
@@ -151,6 +160,7 @@
     (testing "they are overlapping, so the player's health should decrease"
       (-> session
           (clara/insert (->Enemy 1 1 10) (->Player 1 1 10))
+          clara/fire-rules
           (clara/query :get-player)
           :hp
           (= 8)
@@ -158,6 +168,7 @@
     (testing "they are not overlapping, so the player's health should not change"
       (-> session
           (clara/insert (->Enemy 0 1 10) (->Player 1 1 10))
+          clara/fire-rules
           (clara/query :get-player)
           :hp
           (= 10)

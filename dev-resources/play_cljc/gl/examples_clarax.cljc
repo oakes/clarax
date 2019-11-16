@@ -41,6 +41,7 @@
          (clarax/merge! rect {:y (- (:height game) (:height rect))}))}
       ->session
       (clara/insert (->Rect 50 50 100 100))
+      clara/fire-rules
       atom))
 
 ;; rect
@@ -48,14 +49,19 @@
 (defn rect-example [game]
   (gl game disable (gl game CULL_FACE))
   (gl game disable (gl game DEPTH_TEST))
-  (swap! *state clara/insert (->Game (eu/get-width game) (eu/get-height game)))
+  (swap! *state (fn [state]
+                  (-> state
+                      (clara/insert (->Game (eu/get-width game) (eu/get-height game)))
+                      clara/fire-rules)))
   (let [*mouse-state (atom {})]
     (add-watch *mouse-state :mouse-moved
                (fn [_ _ _ new-mouse-state]
                  (swap! *state
                         (fn [state]
-                          (let [fact (clara/query state :get-rect)]
-                            (clarax/merge state fact (select-keys new-mouse-state [:x :y])))))))
+                          (as-> state $
+                                (clara/query $ :get-rect)
+                                (clarax/merge state $ (select-keys new-mouse-state [:x :y]))
+                                (clara/fire-rules $))))))
     (eu/listen-for-mouse game *mouse-state))
   (->> (assoc (e/->entity game primitives/rect)
               :clear {:color [1 1 1 1] :depth 1})
