@@ -99,8 +99,8 @@
                           {:keys [x y] :as enemy} Enemy
                           :when (and (= (:x player) x)
                                      (= (:y player) y))]
-                      (clarax/merge! player {:x (inc (:x player))})
-                      (clarax/merge! enemy {:hp (dec (:hp enemy))}))})
+                      (clarax/merge! player (update player :x inc))
+                      (clarax/merge! enemy (update enemy :hp dec)))})
         $
         (clara/insert $ (->Enemy 0 0 10))
         (clara/insert $ (->Player 3 3 10))
