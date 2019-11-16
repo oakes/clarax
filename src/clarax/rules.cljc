@@ -23,11 +23,10 @@
   (fire-rules [this opts]
     (-> (engine/fire-rules session opts)
         (Session. queries query-fns)))
-  (query [this query params]
-    (some-> session
-            (engine/query (or (get queries query) query) params)
-            first
-            ((or (get query-fns query) identity))))
+  (query [this query-name params]
+    (if-let [query-fn (get query-fns query-name)]
+      (query-fn session params)
+      (throw (ex-info (str "Query not found: " query-name) {}))))
   (components [this]
     (engine/components session))
   

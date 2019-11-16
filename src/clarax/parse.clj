@@ -130,9 +130,14 @@
        (cons (->> fn-form :args (mapv keyword)))
        (dsl/build-query (symbol name))))
 
-(defn build-return-fn [fn-form]
-  `(fn [ret#]
-     (let [~(-> fn-form :body :bindings ->destructure-pairs ->destructure-map) ret#]
+(defn build-query-fn [fn-form query]
+  `(fn [session# params#]
+     (let [~(-> fn-form
+                :body
+                :bindings
+                ->destructure-pairs
+                ->destructure-map)
+           (first (clara.rules.engine/query session# ~query params#))]
        ~@(-> fn-form :body :body))))
 
 (defn build-rule [name {:keys [bindings body]}]
@@ -152,9 +157,9 @@
         parsed-body (parse ::body body)
         _ (doseq [[name [kind prod]] parsed-body]
             (case kind
-              :query (do
-                       (vswap! *queries assoc name (build-query name prod))
-                       (vswap! *query-fns assoc name (build-return-fn prod)))
+              :query (let [query (build-query name prod)]
+                       (vswap! *queries assoc name query)
+                       (vswap! *query-fns assoc name (build-query-fn prod query)))
               :rule (vswap! *rules assoc name (build-rule name prod))))
         queries @*queries
         productions (-> (vec (vals @*rules))
