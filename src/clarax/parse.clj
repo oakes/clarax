@@ -16,7 +16,8 @@
 
 (s/def ::let-right (s/or
                      :latest symbol?
-                     :all (s/tuple symbol?)))
+                     :distinct (s/coll-of symbol? :kind set? :count 1)
+                     :accumulator (s/tuple symbol? any?)))
 
 (s/def ::when-form (s/cat
                      :key #{:when}
@@ -101,14 +102,21 @@
   (let [sym (get-symbol left)
         destructure-sym (second left)
         binding-sym (get-binding-symbol sym)
-        conditions (->conditions bindings when-form)]
-    (case (first right)
-      :latest (into [binding-sym '<-]
-                (into [(second right) [destructure-sym]]
-                      conditions))
-      :all [binding-sym '<- '(clara.rules.accumulators/distinct)
-            :from (into [(-> right second first) [destructure-sym]]
-                        conditions)])))
+        conditions (->conditions bindings when-form)
+        [right-kind right-value] right]
+    (case right-kind
+      :latest
+      (into [binding-sym '<-]
+            (into [right-value [destructure-sym]]
+                  conditions))
+      :distinct
+      [binding-sym '<- '(clara.rules.accumulators/distinct)
+       :from (into [(first right-value) [destructure-sym]]
+                   conditions)]
+      :accumulator
+      [binding-sym '<- (second right-value)
+       :from (into [(first right-value) [destructure-sym]]
+                   conditions)])))
 
 (defn transform-let-bindings [bindings]
   (:ret

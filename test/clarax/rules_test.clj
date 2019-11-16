@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [clarax.macros-java :refer [->session]]
             [clarax.rules :as clarax]
-            [clara.rules :as clara]))
+            [clara.rules :as clara]
+            [clara.rules.accumulators :as acc]))
 
 (defrecord Player [x y hp])
 (defrecord Enemy [x y hp])
@@ -22,7 +23,7 @@
 (deftest query-enemies
   (-> (->session {:get-enemies
                   (fn []
-                    (let [enemy [Enemy]]
+                    (let [enemy #{Enemy}]
                       enemy))})
       (clara/insert (->Enemy 0 0 10))
       (clara/insert (->Enemy 1 1 10))
@@ -58,7 +59,7 @@
 (deftest query-condition
   (-> (->session {:get-enemies
                   (fn []
-                    (let [{:keys [x] :as enemy} [Enemy]
+                    (let [{:keys [x] :as enemy} #{Enemy}
                           :when (>= x 1)]
                       enemy))})
       (clara/insert (->Enemy 0 0 10))
@@ -117,7 +118,7 @@
         player))
     :get-players
     (fn []
-      (let [player [Player]]
+      (let [player #{Player}]
         player))})
 
 (def enemy-queries
@@ -127,7 +128,7 @@
         enemy))
     :get-enemies
     (fn []
-      (let [enemy [Enemy]]
+      (let [enemy #{Enemy}]
         enemy))})
 
 (defmacro ->session* []
@@ -175,4 +176,18 @@
           :hp
           (= 10)
           is))))
+
+(deftest query-accumulator
+  (-> (->session {:get-enemies
+                  (fn []
+                    (let [enemy [Enemy (acc/all)]]
+                      enemy))})
+      (clara/insert (->Enemy 0 0 10))
+      (clara/insert (->Enemy 1 1 10))
+      (clara/insert (->Enemy 2 2 10))
+      clara/fire-rules
+      (clara/query :get-enemies)
+      count
+      (= 3)
+      is))
 
