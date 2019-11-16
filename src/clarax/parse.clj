@@ -132,7 +132,8 @@
 
 (defn build-query-fn [fn-form query]
   `(fn [session# params#]
-     (let [~(-> fn-form
+     (let [{:keys ~(:args fn-form)} params#
+           ~(-> fn-form
                 :body
                 :bindings
                 ->destructure-pairs
