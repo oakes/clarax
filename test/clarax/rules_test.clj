@@ -122,11 +122,11 @@
       (let [enemy [Enemy]]
         enemy))})
 
-(defmacro ->rules-and-queries []
-  '`~(merge player-queries enemy-queries))
+(defmacro ->session* []
+  `(->session ~(merge player-queries enemy-queries)))
 
 (deftest query-with-macro
-  (-> (->session (->rules-and-queries))
+  (-> (->session*)
       (clara/insert (->Enemy 0 0 10))
       (clara/insert (->Player 3 3 10))
       (clara/query :get-player)
