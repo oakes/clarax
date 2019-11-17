@@ -1,4 +1,4 @@
-(defproject net.sekao/clarax "0.1.0"
+(defproject net.sekao/clarax "0.2.0-SNAPSHOT"
   :url "https://github.com/oakes/clarax"
   :license {:name "Public Domain"
             :url "http://unlicense.org/UNLICENSE"}
