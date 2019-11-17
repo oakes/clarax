@@ -17,6 +17,7 @@
 (s/def ::let-right (s/or
                      :latest symbol?
                      :distinct (s/coll-of symbol? :kind set? :count 1)
+                     :all (s/tuple symbol?)
                      :accumulator (s/tuple symbol? any?)))
 
 (s/def ::when-form (s/cat
@@ -109,12 +110,10 @@
       (into [binding-sym '<-]
             (into [right-value [destructure-sym]]
                   conditions))
-      :distinct
-      [binding-sym '<- '(clara.rules.accumulators/distinct)
-       :from (into [(first right-value) [destructure-sym]]
-                   conditions)]
-      :accumulator
-      [binding-sym '<- (second right-value)
+      [binding-sym '<- (case right-kind
+                         :distinct '(clara.rules.accumulators/distinct)
+                         :all '(clara.rules.accumulators/all)
+                         :accumulator (second right-value))
        :from (into [(first right-value) [destructure-sym]]
                    conditions)])))
 
