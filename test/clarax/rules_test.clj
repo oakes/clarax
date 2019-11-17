@@ -184,7 +184,7 @@
                          enemy))
                      :get-distinct-enemies
                      (fn []
-                       (let [enemy #{Enemy}]
+                       (let [enemy [Enemy (acc/distinct)]]
                          enemy))
                      :get-weakest-enemy
                      (fn []
