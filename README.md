@@ -106,7 +106,7 @@ Here's the same program using clarax:
 
        :get-enemies-at
        (fn [?x ?y]
-         (let [{:keys [x y] :as enemy} [Enemy] ;; you can destructure just like in a normal `let` form
+         (let [{:keys [x y] :as enemy} [Enemy (acc/all)] ;; you can destructure just like in a normal `let` form
                :when (and (= ?x x) (= ?y y))]
            enemy))}
       ;; this macro creates the session from the hash map
