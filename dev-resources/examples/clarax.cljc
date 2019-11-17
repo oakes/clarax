@@ -8,7 +8,7 @@
 (defrecord Enemy [x y health])
 
 (def *session
-  (-> ;; all rules/queries and specified in a single hash map.
+  (-> ;; all rules/queries are specified in a single hash map.
       ;; as you can see, rules look like familiar `let` expressions,
       ;; mapping a name (enemy) to a record type (Enemy).
       ;; any binding pair can be followed by a :when expression,
@@ -42,7 +42,7 @@
            enemy))}
       ;; this macro creates the session from the hash map
       ->session
-      ;; you use the same function from clara to insert and fire rules
+      ;; you use the same functions from clara to insert and fire rules
       (clara/insert (->Player 1 1 10)
                     (->Enemy 1 1 10)
                     (->Enemy 1 1 10)

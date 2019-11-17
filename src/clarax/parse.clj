@@ -10,8 +10,11 @@
 
 (s/def ::as symbol?)
 
+(def ^:private starts-with-?
+  #(str/starts-with? (str %) "?"))
+
 (s/def ::let-left (s/or
-                    :simple symbol?
+                    :simple (s/and symbol? #(not (starts-with-? %)))
                     :destructure (s/keys :req-un [::as])))
 
 (s/def ::let-right (s/or
@@ -35,8 +38,7 @@
 
 (s/def ::fn-form (s/cat
                    :sym '#{fn}
-                   :args (s/coll-of (s/and symbol?
-                                           #(str/starts-with? (str %) "?"))
+                   :args (s/coll-of (s/and symbol? starts-with-?)
                                     :kind vector?)
                    :body (s/spec ::let-form)))
 
