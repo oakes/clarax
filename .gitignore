@@ -2,7 +2,9 @@ hs_err_pid*.log
 pom.xml
 pom.xml.asc
 target/
-dev-resources/dynadoc-extend/main.js
-dev-resources/dynadoc-extend/main.out
+dev-resources/public/main.js
+dev-resources/public/main.out
+gamedev-resources/dynadoc-extend/main.js
+gamedev-resources/dynadoc-extend/main.out
 .*
 !.gitignore

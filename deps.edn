@@ -1,7 +1,11 @@
 {:paths ["src"]
  :deps {com.cerner/clara-rules {:mvn/version "0.20.0"}
         expound {:mvn/version "0.7.2"}}
- :aliases {:gamedev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.10.520"}
+ :aliases {:dev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.10.520"}
+                              com.bhauman/figwheel-main {:mvn/version "0.2.0"}}
+                 :extra-paths ["dev-resources"]
+                 :main-opts ["dev.clj"]}
+           :gamedev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.10.520"}
                                   dynadoc {:mvn/version "RELEASE"}
                                   com.bhauman/figwheel-main {:mvn/version "0.2.0"}
                                   orchestra {:mvn/version "2018.12.06-2"}
@@ -22,10 +26,10 @@
                                   org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.2.3"}
                                   org.lwjgl/lwjgl-stb$natives-windows {:mvn/version "3.2.3"}
                                   play-cljc {:local/root "../play-cljc"}}
-                     :extra-paths ["dev-resources" "../play-cljc/dev-resources"]
+                     :extra-paths ["gamedev-resources" "../play-cljc/dev-resources"]
                      :main-opts ["gamedev.clj"]}
+           :macos {:jvm-opts ["-XstartOnFirstThread"]}
            :prod {:extra-deps {leiningen {:mvn/version "2.9.0"}}
                   :main-opts ["prod.clj"]}
            :test {:extra-paths ["test"]
-                  :main-opts ["test.clj"]}
-           :macos {:jvm-opts ["-XstartOnFirstThread"]}}}
+                  :main-opts ["test.clj"]}}}
