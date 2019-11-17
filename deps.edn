@@ -1,31 +1,31 @@
 {:paths ["src"]
  :deps {com.cerner/clara-rules {:mvn/version "0.20.0"}
         expound {:mvn/version "0.7.2"}}
- :aliases {:dev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.10.520"}
-                              dynadoc {:mvn/version "RELEASE"}
-                              com.bhauman/figwheel-main {:mvn/version "0.2.0"}
-                              orchestra {:mvn/version "2018.12.06-2"}
-                              org.lwjgl/lwjgl {:mvn/version "3.2.3"}
-                              org.lwjgl/lwjgl-glfw {:mvn/version "3.2.3"}
-                              org.lwjgl/lwjgl-opengl {:mvn/version "3.2.3"}
-                              org.lwjgl/lwjgl-stb {:mvn/version "3.2.3"}
-                              play-cljc {:local/root "../play-cljc"}}
-                 :extra-paths ["dev-resources" "../play-cljc/dev-resources"]
-                 :main-opts ["dev.clj"]}
+ :aliases {:gamedev {:extra-deps {org.clojure/clojurescript {:mvn/version "1.10.520"}
+                                  dynadoc {:mvn/version "RELEASE"}
+                                  com.bhauman/figwheel-main {:mvn/version "0.2.0"}
+                                  orchestra {:mvn/version "2018.12.06-2"}
+                                  org.lwjgl/lwjgl {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-glfw {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-opengl {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-stb {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl$natives-linux {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-glfw$natives-linux {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-opengl$natives-linux {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-stb$natives-linux {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl$natives-macos {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-glfw$natives-macos {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-opengl$natives-macos {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-stb$natives-macos {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl$natives-windows {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-glfw$natives-windows {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.2.3"}
+                                  org.lwjgl/lwjgl-stb$natives-windows {:mvn/version "3.2.3"}
+                                  play-cljc {:local/root "../play-cljc"}}
+                     :extra-paths ["dev-resources" "../play-cljc/dev-resources"]
+                     :main-opts ["gamedev.clj"]}
            :prod {:extra-deps {leiningen {:mvn/version "2.9.0"}}
                   :main-opts ["prod.clj"]}
            :test {:extra-paths ["test"]
                   :main-opts ["test.clj"]}
-           :linux {:extra-deps {org.lwjgl/lwjgl$natives-linux {:mvn/version "3.2.3"}
-                                org.lwjgl/lwjgl-glfw$natives-linux {:mvn/version "3.2.3"}
-                                org.lwjgl/lwjgl-opengl$natives-linux {:mvn/version "3.2.3"}
-                                org.lwjgl/lwjgl-stb$natives-linux {:mvn/version "3.2.3"}}}
-           :macos {:extra-deps {org.lwjgl/lwjgl$natives-macos {:mvn/version "3.2.3"}
-                                org.lwjgl/lwjgl-glfw$natives-macos {:mvn/version "3.2.3"}
-                                org.lwjgl/lwjgl-opengl$natives-macos {:mvn/version "3.2.3"}
-                                org.lwjgl/lwjgl-stb$natives-macos {:mvn/version "3.2.3"}}
-                   :jvm-opts ["-XstartOnFirstThread"]}
-           :windows {:extra-deps {org.lwjgl/lwjgl$natives-windows {:mvn/version "3.2.3"}
-                                  org.lwjgl/lwjgl-glfw$natives-windows {:mvn/version "3.2.3"}
-                                  org.lwjgl/lwjgl-opengl$natives-windows {:mvn/version "3.2.3"}
-                                  org.lwjgl/lwjgl-stb$natives-windows {:mvn/version "3.2.3"}}}}}
+           :macos {:jvm-opts ["-XstartOnFirstThread"]}}}

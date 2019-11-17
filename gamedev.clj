@@ -14,7 +14,7 @@
 (defmethod task nil
   [_]
   (dynadoc/start {:port 5000, :dedupe-pref :cljs})
-  (figwheel/-main "--build" "dev"))
+  (figwheel/-main "--build" "gamedev"))
 
 (require '[play-cljc.dev :as dev]
          '[play-cljc.gl.examples-clarax])
