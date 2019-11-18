@@ -8,9 +8,8 @@ Why does clara need a new coat of paint? Consider an example using clara's curre
 
 ```clojure
 (ns examples.clara
-  (:require [clara.rules :as clara #?@(:clj [:refer [defsession defquery defrule]])]
-            [clara.rules.accumulators :as acc])
-  #?(:cljs (:require-macros [clara.rules :refer [defsession defquery defrule]])))
+  (:require [clara.rules :as clara #?(:clj :refer :cljs :refer-macros) [defsession defquery defrule]]
+            [clara.rules.accumulators :as acc]))
 
 (defrecord Player [x y health])
 (defrecord Enemy [x y health])
