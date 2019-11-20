@@ -80,8 +80,14 @@
     {}
     pairs))
 
+(defn binding-symbol? [x]
+  (and (symbol? x) (starts-with-? x)))
+
 (defn wrap-in-let [bindings body]
-  (if (and (seq bindings) (coll? body))
+  (if (and (seq bindings)
+           ;; binding symbols may be query args,
+           ;; and wrapping them in a `let` can break them
+           (not (binding-symbol? body)))
     (list 'let
       (reduce into (->destructure-pairs bindings))
       body)
