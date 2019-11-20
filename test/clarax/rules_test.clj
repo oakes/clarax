@@ -211,3 +211,17 @@
         (= 6)
         is)))
 
+(deftest bug-fix-00f5bbe
+  (-> (->session {:get-enemy
+                  (fn []
+                    (let [player Player
+                          enemy Enemy
+                          :when (= player enemy)]
+                      enemy))})
+      (clara/insert (->Enemy 1 0 10))
+      (clara/insert (->Player 3 3 10))
+      clara/fire-rules
+      (clara/query :get-enemy)
+      nil?
+      is))
+
