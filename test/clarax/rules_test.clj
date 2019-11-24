@@ -159,7 +159,7 @@
                      (let [player Player]
                        player))})
         ;; pull query fn out just to make sure we can do it this way
-        get-player (-> session .query-fns :get-player)]
+        get-player (-> session clarax/query-fns :get-player)]
     (testing "they are overlapping, so the player's health should decrease"
       (-> session
           (clara/insert (->Enemy 1 1 10) (->Player 1 1 10))

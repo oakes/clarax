@@ -7,6 +7,11 @@
 (defprotocol IMerge
   (merge [this fact new-args]))
 
+(defprotocol ISession
+  (session [this])
+  (queries [this])
+  (query-fns [this]))
+
 (deftype Session [session queries query-fns]
   engine/ISession
   (insert [this facts]
@@ -35,7 +40,12 @@
     (-> session
         (rules/retract fact)
         (rules/insert (clojure.core/merge fact new-args))
-        (Session. queries query-fns))))
+        (Session. queries query-fns)))
+
+  ISession
+  (session [this] session)
+  (queries [this] queries)
+  (query-fns [this] query-fns))
 
 (defn merge! [fact new-args]
   (rules/retract! fact)
