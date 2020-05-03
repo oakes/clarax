@@ -225,3 +225,25 @@
       nil?
       is))
 
+(deftest destructure-right-hand-side
+  (let [session (->session {:get-player-x
+                            (fn []
+                              (let [{:keys [x] :as player} Player]
+                                x))
+                            :remove-player-when-dead
+                            (let [{:keys [hp] :as player} Player]
+                              (when (= hp 0)
+                                (clara/retract! player)))})]
+    (-> session
+        (clara/insert (->Player 3 5 10))
+        clara/fire-rules
+        (clara/query :get-player-x)
+        (= 3)
+        is)
+    (-> session
+        (clara/insert (->Player 3 5 0))
+        clara/fire-rules
+        (clara/query :get-player-x)
+        (= nil)
+        is)))
+

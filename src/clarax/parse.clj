@@ -68,8 +68,9 @@
 (defn ->destructure-pairs [bindings]
   (reduce
     (fn [v {:keys [left]}]
-      (let [sym (get-symbol left)]
-        (conj v [sym (get-binding-symbol sym)])))
+      (let [[_ value] left
+            sym (get-symbol left)]
+        (conj v [value (get-binding-symbol sym)])))
     []
     bindings))
 
