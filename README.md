@@ -130,9 +130,9 @@ Here's the same program using clarax:
 ;; this only returns one, because the other enemy at (2, 2) was removed by the remove-dead-enemies rule
 ```
 
-## Usage
+## Dealing with "Method code too large" errors
 
-You can include this library in your project dependencies using the version number in the badge above.
+It's possible for that map of rules and queries to become too large, at which point you'll get a `Method code too large!` error. And since `->session` is a macro, it needs that map to exist at compile time, so merging smaller maps together at runtime won't work. Instead, you can merge the maps together at compile time with a macro. See the [dungeon-crawler game](https://github.com/oakes/play-cljc-examples/blob/47bbbe3aaf01a11ffe68f993d2aa7b5b6853ea30/dungeon-crawler/src/dungeon_crawler/session.cljc#L317-L318) for an example of this. This works for ClojureScript as well.
 
 ## Development
 
