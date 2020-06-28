@@ -37,10 +37,13 @@
   
   IMerge
   (merge [this fact new-args]
-    (-> session
-        (rules/retract fact)
-        (rules/insert (clojure.core/merge fact new-args))
-        (Session. queries query-fns)))
+    (let [new-fact (clojure.core/merge fact new-args)]
+      (if (not= fact new-fact)
+        (-> session
+            (rules/retract fact)
+            (rules/insert new-fact)
+            (Session. queries query-fns))
+        this)))
 
   ISession
   (session [this] session)
@@ -48,6 +51,8 @@
   (query-fns [this] query-fns))
 
 (defn merge! [fact new-args]
-  (rules/retract! fact)
-  (rules/insert-unconditional! (clojure.core/merge fact new-args)))
+  (let [new-fact (clojure.core/merge fact new-args)]
+    (when (not= fact new-fact)
+      (rules/retract! fact)
+      (rules/insert-unconditional! new-fact))))
 
