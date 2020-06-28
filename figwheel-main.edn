@@ -1,2 +1,1 @@
-{:open-url "http://localhost:9500"
- :clean-outputs true}
+{:clean-outputs true}

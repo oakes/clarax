@@ -7,6 +7,7 @@
             [play-cljc.instances :as i]
             [play-cljc.primitives-2d :as primitives]
             [clara.rules :as clara]
+            [clara.rules.accumulators :as acc]
             [clarax.rules :as clarax]
             #?(:clj  [play-cljc.macros-java :refer [gl]]
                :cljs [play-cljc.macros-js :refer-macros [gl]])
@@ -25,7 +26,8 @@
            rect))
        :get-rects
        (fn []
-         (let [rect [Rect]]
+         (let [rect Rect
+               :accumulator (acc/all)]
            rect))
        :right-boundary
        (let [game Game
