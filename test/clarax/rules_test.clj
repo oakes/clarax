@@ -177,7 +177,10 @@
           (= 10)
           is))))
 
-(deftest query-accumulators
+;; this is the old accumulator syntax.
+;; it still works, but now there is a separate
+;; :accumulator option which is more clear
+(deftest query-accumulators-old
   (let [session (-> {:get-enemies
                      (fn []
                        (let [enemy [Enemy]]
@@ -189,6 +192,43 @@
                      :get-weakest-enemy
                      (fn []
                        (let [enemy [Enemy (acc/min :hp :returns-fact true)]]
+                         enemy))}
+                    ->session
+                    (clara/insert (->Enemy 0 0 10))
+                    (clara/insert (->Enemy 0 0 10))
+                    (clara/insert (->Enemy 2 2 6))
+                    clara/fire-rules)]
+    (-> session
+        (clara/query :get-enemies)
+        count
+        (= 3)
+        is)
+    (-> session
+        (clara/query :get-distinct-enemies)
+        count
+        (= 2)
+        is)
+    (-> session
+        (clara/query :get-weakest-enemy)
+        :hp
+        (= 6)
+        is)))
+
+(deftest query-accumulators
+  (let [session (-> {:get-enemies
+                     (fn []
+                       (let [enemy Enemy
+                             :accumulator (acc/all)]
+                         enemy))
+                     :get-distinct-enemies
+                     (fn []
+                       (let [enemy Enemy
+                             :accumulator (acc/distinct)]
+                         enemy))
+                     :get-weakest-enemy
+                     (fn []
+                       (let [enemy Enemy
+                             :accumulator (acc/min :hp :returns-fact true)]
                          enemy))}
                     ->session
                     (clara/insert (->Enemy 0 0 10))

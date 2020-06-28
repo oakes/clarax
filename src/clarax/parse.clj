@@ -19,17 +19,24 @@
 
 (s/def ::let-right (s/or
                      :latest symbol?
+                     ;; this is the old syntax for accumulators
                      :all (s/tuple symbol?)
                      :accumulator (s/tuple symbol? any?)))
 
 (s/def ::when-form (s/cat
                      :key #{:when}
-                     :condition list?))
+                     :val any?))
+
+(s/def ::accumulator-form (s/cat
+                            :key #{:accumulator}
+                            :val any?))
 
 (s/def ::let-pair (s/cat
                     :left ::let-left
                     :right ::let-right
-                    :when-form (s/? ::when-form)))
+                    :opts (s/* (s/alt
+                                 :when ::when-form
+                                 :accumulator ::accumulator-form))))
 
 (s/def ::let-form (s/cat
                     :sym '#{let}
@@ -94,8 +101,9 @@
       body)
     body))
 
-(defn ->conditions [bindings {:keys [condition] :as when-form}]
-  (let [conditions (cond
+(defn ->conditions [bindings opts]
+  (let [condition (:when opts)
+        conditions (cond
                      (nil? condition) []
                      (= 'and (first condition)) (drop 1 condition)
                      :else [condition])]
@@ -107,17 +115,35 @@
               (wrap-in-let bindings condition)))
           conditions)))
 
-(defn transform-let-binding [bindings {:keys [left right when-form]}]
+(defn opts->map [opts]
+  (reduce
+    (fn [m [_ {:keys [key val] :as opt}]]
+      (when (contains? m key)
+        (throw (ex-info (str "Duplicate key " key) {})))
+      (assoc m key val))
+    {}
+    opts))
+
+(defn transform-let-binding [bindings {:keys [left right opts] :as bind}]
   (let [sym (get-symbol left)
         destructure-sym (second left)
         binding-sym (get-binding-symbol sym)
-        conditions (->conditions bindings when-form)
+        opts (opts->map opts)
+        conditions (->conditions bindings opts)
         [right-kind right-value] right]
+    (when (and (:accumulator opts)
+               (#{:all :accumulator} right-kind))
+      (throw (ex-info "You cannot use the old and new accumulator syntax at the same time" bind)))
     (case right-kind
       :latest
-      (into [binding-sym '<-]
-            (into [right-value [destructure-sym]]
-                  conditions))
+      (if-let [acc (:accumulator opts)]
+        [binding-sym '<- acc
+         :from (into [right-value [destructure-sym]]
+                     conditions)]
+        (into [binding-sym '<-]
+              (into [right-value [destructure-sym]]
+                    conditions)))
+      ;; this is the old syntax for accumulators
       [binding-sym '<- (case right-kind
                          :all '(clara.rules.accumulators/all)
                          :accumulator (second right-value))

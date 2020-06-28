@@ -98,14 +98,16 @@ Here's the same program using clarax:
        :get-nearby-enemies
        (fn []
          (let [player Player
-               enemy [Enemy (acc/all)] ;; this is how you use an accumulator
+               enemy Enemy
+               :accumulator (acc/all) ;; this is how you use an accumulator
                :when (and (= (:x player) (:x enemy))
                           (= (:y player) (:y enemy)))]
            enemy))
 
        :get-enemies-at
        (fn [?x ?y]
-         (let [{:keys [x y] :as enemy} [Enemy (acc/all)] ;; you can destructure just like in a normal `let` form
+         (let [{:keys [x y] :as enemy} Enemy ;; you can destructure just like in a normal `let` form
+               :accumulator (acc/all)
                :when (and (= ?x x) (= ?y y))]
            enemy))}
       ;; this macro creates the session from the hash map
