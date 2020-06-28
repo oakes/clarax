@@ -190,9 +190,13 @@
       (transform-let-bindings bindings)
       ['=>]
       (list
-        (concat
-          (list 'let (reduce into (->destructure-pairs bindings)))
-          body)))))
+        (list 'try
+          (concat
+            (list 'let (reduce into (->destructure-pairs bindings)))
+            body)
+          ;; for some reason, exceptions in rules sometimes don't print anything out,
+          ;; so here we are catching them and forcing them to print out
+          '(catch Exception e (.printStackTrace e) (throw e)))))))
 
 (defn ->productions [body]
   (let [*queries (volatile! {})
