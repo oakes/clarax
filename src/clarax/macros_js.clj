@@ -4,7 +4,7 @@
             [clara.rules :as rules]))
 
 (defmacro ->session [rules-and-queries]
-  (let [{:keys [productions queries query-fns]} (parse/->productions rules-and-queries)]
+  (let [{:keys [productions queries query-fns]} (parse/->productions rules-and-queries {:platform :cljs})]
     `(clarax.rules.Session. ~(-> productions
                                  eval
                                  (macros/productions->session-assembly-form []))

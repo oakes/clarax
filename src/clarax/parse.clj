@@ -184,21 +184,25 @@
                    ->destructure-map) ret#]
           ~@(-> fn-form :body :body))))))
 
-(defn build-rule [name {:keys [bindings body]}]
+(defn build-rule [name {:keys [bindings body]} platform]
   (dsl/build-rule (symbol name)
     (concat
       (transform-let-bindings bindings)
       ['=>]
       (list
-        (list 'try
+        (as->
           (concat
             (list 'let (reduce into (->destructure-pairs bindings)))
             body)
-          ;; for some reason, exceptions in rules sometimes don't print anything out,
-          ;; so here we are catching them and forcing them to print out
-          '(catch Exception e (.printStackTrace e) (throw e)))))))
+          $
+          (case platform
+            ;; for some reason, exceptions in rules sometimes don't print anything out,
+            ;; so here we are catching them and forcing them to print out
+            :clj (list 'try $ '(catch Exception e (.printStackTrace e) (throw e)))
+            :cljs (list 'try $ '(catch js/Error e (js/console.error (.-message e)) (throw e)))
+            $))))))
 
-(defn ->productions [body]
+(defn ->productions [body {:keys [platform]}]
   (let [*queries (volatile! {})
         *query-fns (volatile! {})
         *rules (volatile! {})
@@ -208,7 +212,7 @@
               :query (let [query (build-query name prod)]
                        (vswap! *queries assoc name query)
                        (vswap! *query-fns assoc name (build-query-fn prod query)))
-              :rule (vswap! *rules assoc name (build-rule name prod))))
+              :rule (vswap! *rules assoc name (build-rule name prod platform))))
         queries @*queries
         productions (-> (vec (vals @*rules))
                         (into (vals queries)))]
