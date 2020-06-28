@@ -105,7 +105,7 @@
   (let [condition (:when opts)
         conditions (cond
                      (nil? condition) []
-                     (= 'and (first condition)) (drop 1 condition)
+                     (and (list? condition) (= 'and (first condition))) (drop 1 condition)
                      :else [condition])]
     (mapv (fn [condition]
             (if (= '= (first condition))
