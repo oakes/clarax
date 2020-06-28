@@ -72,18 +72,24 @@
       is))
 
 (deftest query-parameter
-  (-> (->session {:get-enemy
-                  (fn [?x ?y]
-                    (let [player Player
-                          {:keys [x y] :as enemy} Enemy
-                          :when (and (= x ?x) (= y ?y))]
-                      enemy))})
-      (clara/insert (->Enemy 1 0 10))
-      (clara/insert (->Player 3 3 10))
-      clara/fire-rules
-      (clara/query :get-enemy :?x 1 :?y 0)
-      record?
-      is))
+  (let [session (-> {:get-enemy
+                     (fn [?x ?y]
+                       (let [player Player
+                             {:keys [x y] :as enemy} Enemy
+                             :when (and (= x ?x) (= y ?y))]
+                         (assoc enemy :player player)))}
+                     ->session
+                     (clara/insert (->Enemy 1 0 10))
+                     (clara/insert (->Player 3 3 10))
+                     clara/fire-rules)]
+    (-> session
+        (clara/query :get-enemy :?x 1 :?y 0)
+        record?
+        is)
+    (-> session
+        (clara/query :get-enemy :?x 0 :?y 0)
+        nil?
+        is)))
 
 (deftest query-and-rule
   (as-> (->session {:get-player

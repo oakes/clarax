@@ -175,14 +175,14 @@
      ([session#]
       (query-fn# session# {}))
      ([session# params#]
-      (let [{:keys ~(:args fn-form)} params#
-            ~(-> fn-form
-                 :body
-                 :bindings
-                 ->destructure-pairs
-                 ->destructure-map)
-            (first (clara.rules.engine/query session# ~query params#))]
-        ~@(-> fn-form :body :body)))))
+      (when-let [ret# (first (clara.rules.engine/query session# ~query params#))]
+        (let [{:keys ~(:args fn-form)} params#
+              ~(-> fn-form
+                   :body
+                   :bindings
+                   ->destructure-pairs
+                   ->destructure-map) ret#]
+          ~@(-> fn-form :body :body))))))
 
 (defn build-rule [name {:keys [bindings body]}]
   (dsl/build-rule (symbol name)
