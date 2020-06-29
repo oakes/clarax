@@ -134,7 +134,7 @@ Here's the same program using clarax:
 
 ## Dealing with "Method code too large" errors
 
-It's possible for that map of rules and queries to become too large, at which point you'll get a `Method code too large!` error. And since `->session` is a macro, it needs that map to exist at compile time, so merging smaller maps together at runtime won't work. Instead, you can merge the maps together at compile time with a macro. See the [dungeon-crawler game](https://github.com/oakes/play-cljc-examples/blob/47bbbe3aaf01a11ffe68f993d2aa7b5b6853ea30/dungeon-crawler/src/dungeon_crawler/session.cljc#L317-L318) for an example of this. This works for ClojureScript as well.
+When compiling with ClojureScript, it's possible for that map of rules and queries to become too large, at which point you'll get a `Method code too large!` error. And since `->session` is a macro, it needs that map to exist at compile time, so merging smaller maps together at runtime won't work. Instead, you can merge the maps together at compile time with a macro. See the [dungeon-crawler game](https://github.com/oakes/play-cljc-examples/blob/7e04d62581c361b5e31be95cf3ab1d1ccdded804/dungeon-crawler/src/dungeon_crawler/session.cljc#L318-L319) for an example of this.
 
 ## Development
 
