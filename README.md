@@ -136,6 +136,26 @@ Here's the same program using clarax:
 
 When compiling with ClojureScript, it's possible for that map of rules and queries to become too large, at which point you'll get a `Method code too large!` error. And since `->session` is a macro, it needs that map to exist at compile time, so merging smaller maps together at runtime won't work. Instead, you can merge the maps together at compile time with a macro. See the [dungeon-crawler game](https://github.com/oakes/play-cljc-examples/blob/7e04d62581c361b5e31be95cf3ab1d1ccdded804/dungeon-crawler/src/dungeon_crawler/session.cljc#L318-L319) for an example of this.
 
+## Defining top-level vars for queries
+
+As mentioned before, clarax doesn't force you to define top-level vars; queries are done by passing keywords to the `clara.rules/query` function. That being said, as a performance optimization you may want to pull them out into their own vars. You can do so like this:
+
+```clojure
+(let [query-fns (clarax/query-fns @*session)]
+  (def get-player (:get-player query-fns))
+  (def get-nearby-enemies (:get-nearby-enemies query-fns))
+  (def get-enemies-at (:get-enemies-at query-fns)))
+
+(println (get-player @*session))
+;; => #examples.clara.Player{:x 1, :y 1, :health 10}
+
+(println (get-nearby-enemies @*session))
+;; => [#examples.clara.Enemy{:x 1, :y 1, :health 10} #examples.clara.Enemy{:x 1, :y 1, :health 10}]
+
+(println (get-enemies-at @*session {:?x 2 :?y 2}))
+;; => [#examples.clara.Enemy{:x 2, :y 2, :health 10}]
+```
+
 ## Development
 
 * Install [the Clojure CLI tool](https://clojure.org/guides/getting_started#_clojure_installer_and_cli_tools)
