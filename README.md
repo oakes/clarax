@@ -141,7 +141,7 @@ When compiling with ClojureScript, it's possible for that map of rules and queri
 As mentioned before, clarax doesn't force you to define top-level vars; queries are done by passing keywords to the `clara.rules/query` function. That being said, as a performance optimization you may want to pull them out into their own vars. You can do so like this:
 
 ```clojure
-(let [query-fns (clarax/query-fns @*session)]
+(let [query-fns (clarax.rules/query-fns @*session)]
   (def get-player (:get-player query-fns))
   (def get-nearby-enemies (:get-nearby-enemies query-fns))
   (def get-enemies-at (:get-enemies-at query-fns)))
