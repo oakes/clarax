@@ -25,7 +25,7 @@
 
 (s/def ::when-form (s/cat
                      :key #{:when}
-                     :val any?))
+                     :val list?))
 
 (s/def ::accumulator-form (s/cat
                             :key #{:accumulator}
@@ -105,9 +105,11 @@
   (let [condition (:when opts)
         conditions (cond
                      (nil? condition) []
-                     (and (list? condition) (= 'and (first condition))) (drop 1 condition)
+                     (= 'and (first condition)) (drop 1 condition)
                      :else [condition])]
     (mapv (fn [condition]
+            (when-not (list? condition)
+              (throw (ex-info (str "Condition in :when clause is not a list: " condition) {})))
             (if (= '= (first condition))
               (->> (rest condition)
                    (map (partial wrap-in-let bindings))
