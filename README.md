@@ -1,5 +1,7 @@
 [![Clojars Project](https://img.shields.io/clojars/v/net.sekao/clarax.svg)](https://clojars.org/net.sekao/clarax)
 
+## Note: The joke in the paragraph below is now a real thing: [odoyle-rules](https://github.com/oakes/odoyle-rules)
+
 ## Introduction
 
 A library providing an alternative syntax for [Clara Rules](https://github.com/cerner/clara-rules). After deep contemplation, thorough discussion with the greatest minds I know, and summoning the willpower of a Greek god, I decided to resist calling it O'Doyle Rules. You are welcome.
